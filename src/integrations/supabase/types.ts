@@ -9,7 +9,89 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      invoice_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          invoice_id: string | null
+          quantity: number | null
+          total_price: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          invoice_id?: string | null
+          quantity?: number | null
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          invoice_id?: string | null
+          quantity?: number | null
+          total_price?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          due_date: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          original_file_url: string | null
+          status: string | null
+          total_amount: number | null
+          updated_at: string | null
+          user_id: string
+          vendor_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          original_file_url?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          user_id: string
+          vendor_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          original_file_url?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vendor_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

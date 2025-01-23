@@ -92,12 +92,6 @@ const Account = () => {
             <CreditCard className="mr-2" />
             Manage Billing
           </Button>
-          {isFreePlan && (
-            <Button className="w-full sm:w-auto">
-              <Star className="mr-2" />
-              Upgrade to Pro
-            </Button>
-          )}
         </CardFooter>
       </Card>
 

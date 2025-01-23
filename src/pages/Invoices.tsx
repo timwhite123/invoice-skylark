@@ -144,8 +144,17 @@ const Invoices = () => {
   };
 
   const handleTagsUpdate = (invoiceId: number, newTags: string[]) => {
-    // Update tags logic will be implemented later
-    console.log("Updating tags for invoice", invoiceId, newTags);
+    const updatedInvoices = mockInvoices.map(invoice => 
+      invoice.id === invoiceId 
+        ? { ...invoice, tags: newTags }
+        : invoice
+    );
+    // In a real application, this would be an API call
+    console.log("Updated invoice tags:", { invoiceId, newTags });
+    
+    // Force a re-render by updating the search query
+    setSearchQuery(searchQuery + " ");
+    setTimeout(() => setSearchQuery(searchQuery.trim()), 0);
   };
 
   return (

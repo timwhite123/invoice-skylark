@@ -26,6 +26,10 @@ export const InvoiceUpload = () => {
 
     setIsUploading(true);
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       // Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -52,6 +56,7 @@ export const InvoiceUpload = () => {
       const { error: dbError } = await supabase
         .from('invoices')
         .insert({
+          user_id: user.id, // Add the user_id field
           vendor_name: parseData.vendor_name,
           invoice_number: parseData.invoice_number,
           invoice_date: parseData.invoice_date,

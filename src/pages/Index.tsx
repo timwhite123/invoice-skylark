@@ -31,9 +31,9 @@ const Index = () => {
           </div>
 
           {/* Upload Section */}
-          <Card className="p-8 text-center animate-fadeIn bg-gradient-to-br from-[#1A89FD]/5 to-[#F95FBD]/5 border-[#1A89FD]/20 border-2 border-dashed hover:border-[#1A89FD]/40 hover:bg-[#1A89FD]/5 transition-all duration-300">
+          <div className="animate-fadeIn">
             <InvoiceUpload />
-          </Card>
+          </div>
 
           {/* Export Section - Only shown after processing */}
           {hasProcessedInvoices && (

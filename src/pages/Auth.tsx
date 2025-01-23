@@ -93,20 +93,20 @@ const Auth = () => {
 
   if (resetPassword) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-3">
         <img 
           src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
           alt="InvoiceJet.ai"
-          className="h-6 w-auto mb-6"
+          className="h-5 w-auto mb-4"
         />
-        <Card className="w-full max-w-sm p-4 space-y-4">
-          <div className="space-y-1.5 text-center">
-            <h1 className="text-xl font-semibold">Reset Password</h1>
-            <p className="text-sm text-gray-500">Enter your email to reset your password</p>
+        <Card className="w-full max-w-xs p-3 space-y-3">
+          <div className="space-y-1 text-center">
+            <h1 className="text-lg font-semibold">Reset Password</h1>
+            <p className="text-xs text-gray-500">Enter your email to reset your password</p>
           </div>
-          <form onSubmit={handlePasswordReset} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+          <form onSubmit={handlePasswordReset} className="space-y-2">
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -114,15 +114,16 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-8 text-sm"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full h-8 text-sm" disabled={loading}>
               {loading ? "Sending..." : "Send Reset Link"}
             </Button>
             <Button
               type="button"
               variant="ghost"
-              className="w-full"
+              className="w-full h-8 text-sm"
               onClick={() => setResetPassword(false)}
             >
               Back to Sign In
@@ -134,28 +135,28 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-3">
       <img 
         src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
         alt="InvoiceJet.ai"
-        className="h-6 w-auto mb-6"
+        className="h-5 w-auto mb-4"
       />
-      <Card className="w-full max-w-sm p-4">
-        <Tabs defaultValue="signin" className="space-y-4">
+      <Card className="w-full max-w-xs p-3">
+        <Tabs defaultValue="signin" className="space-y-3">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin">
-            <div className="space-y-4">
-              <div className="space-y-1.5 text-center">
-                <h1 className="text-xl font-semibold">Welcome back</h1>
-                <p className="text-sm text-gray-500">Sign in to your account</p>
+            <div className="space-y-3">
+              <div className="space-y-1 text-center">
+                <h1 className="text-lg font-semibold">Welcome back</h1>
+                <p className="text-xs text-gray-500">Sign in to your account</p>
               </div>
-              <form onSubmit={handleSignIn} className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="signin-email">Email</Label>
+              <form onSubmit={handleSignIn} className="space-y-2">
+                <div className="space-y-1">
+                  <Label htmlFor="signin-email" className="text-sm">Email</Label>
                   <Input
                     id="signin-email"
                     type="email"
@@ -163,27 +164,29 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    className="h-8 text-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="signin-password">Password</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="signin-password" className="text-sm">Password</Label>
                   <Input
                     id="signin-password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    className="h-8 text-sm"
                   />
                 </div>
                 <Button
                   type="button"
                   variant="link"
-                  className="text-xs px-0"
+                  className="text-xs px-0 h-6"
                   onClick={() => setResetPassword(true)}
                 >
                   Forgot password?
                 </Button>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full h-8 text-sm" disabled={loading}>
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
@@ -191,14 +194,14 @@ const Auth = () => {
           </TabsContent>
 
           <TabsContent value="signup">
-            <div className="space-y-4">
-              <div className="space-y-1.5 text-center">
-                <h1 className="text-xl font-semibold">Create an account</h1>
-                <p className="text-sm text-gray-500">Enter your details to get started</p>
+            <div className="space-y-3">
+              <div className="space-y-1 text-center">
+                <h1 className="text-lg font-semibold">Create an account</h1>
+                <p className="text-xs text-gray-500">Enter your details to get started</p>
               </div>
-              <form onSubmit={handleSignUp} className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="fullName">Full Name</Label>
+              <form onSubmit={handleSignUp} className="space-y-2">
+                <div className="space-y-1">
+                  <Label htmlFor="fullName" className="text-sm">Full Name</Label>
                   <Input
                     id="fullName"
                     type="text"
@@ -206,10 +209,11 @@ const Auth = () => {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
+                    className="h-8 text-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="signup-email">Email</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="signup-email" className="text-sm">Email</Label>
                   <Input
                     id="signup-email"
                     type="email"
@@ -217,19 +221,21 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    className="h-8 text-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="signup-password">Password</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="signup-password" className="text-sm">Password</Label>
                   <Input
                     id="signup-password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    className="h-8 text-sm"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full h-8 text-sm" disabled={loading}>
                   {loading ? "Creating account..." : "Create Account"}
                 </Button>
               </form>

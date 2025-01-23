@@ -66,9 +66,8 @@ export const TagManager = ({ invoiceId, currentTags, onTagsUpdate }: TagManagerP
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="ghost" size="icon" className="h-6 w-6">
           <Tag className="h-4 w-4" />
-          Manage Tags
         </Button>
       </DialogTrigger>
       <DialogContent>

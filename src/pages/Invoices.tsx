@@ -18,10 +18,11 @@ import {
 } from "@/components/ui/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import { Search, Trash2, Merge, ArrowUpDown } from "lucide-react";
+import { Search, Trash2, Merge, ArrowUpDown, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TagManager } from "@/components/invoices/TagManager";
 import { ExportMenu } from "@/components/invoices/ExportMenu";
+import { Badge } from "@/components/ui/badge";
 
 // Mock user plan for now - will be replaced with actual user plan from Supabase
 const userPlan = "free"; // "free" | "pro" | "enterprise"
@@ -44,7 +45,7 @@ const Invoices = () => {
     vendor: `Vendor ${i + 1}`,
     dueDate: new Date(2024, 1, i + 15).toLocaleDateString(),
     amount: `$${(Math.random() * 1000).toFixed(2)}`,
-    tags: [] as string[],
+    tags: [`Tag ${i % 3 + 1}`, `Sample ${i % 2 + 1}`],
   }));
 
   const handleSort = (field: SortField) => {
@@ -79,7 +80,8 @@ const Invoices = () => {
   const filteredInvoices = sortedInvoices.filter(
     (invoice) =>
       invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.vendor.toLowerCase().includes(searchQuery.toLowerCase())
+      invoice.vendor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const itemsPerPage = 10;
@@ -154,7 +156,7 @@ const Invoices = () => {
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search invoices..."
+              placeholder="Search invoices or tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -243,7 +245,7 @@ const Invoices = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredInvoices.map((invoice) => (
+            {paginatedInvoices.map((invoice) => (
               <TableRow key={invoice.id} className="h-12">
                 <TableCell className="align-top pt-3">
                   <input
@@ -263,11 +265,18 @@ const Invoices = () => {
                 <TableCell className="text-sm">{invoice.invoiceNumber}</TableCell>
                 <TableCell className="text-sm">{invoice.dueDate}</TableCell>
                 <TableCell>
-                  <TagManager
-                    invoiceId={invoice.id}
-                    currentTags={invoice.tags}
-                    onTagsUpdate={(tags) => handleTagsUpdate(invoice.id, tags)}
-                  />
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {invoice.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                    <TagManager
+                      invoiceId={invoice.id}
+                      currentTags={invoice.tags}
+                      onTagsUpdate={(tags) => handleTagsUpdate(invoice.id, tags)}
+                    />
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <ExportMenu userPlan={userPlan} onExport={handleExport} />

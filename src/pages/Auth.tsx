@@ -30,11 +30,34 @@ const Auth = () => {
           },
         },
       });
-      if (error) throw error;
+      
+      if (error) {
+        if (error.message === "User already registered") {
+          toast({
+            variant: "destructive",
+            title: "Account already exists",
+            description: "Please sign in instead or use a different email address.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: error.message,
+          });
+        }
+        return;
+      }
+
       toast({
         title: "Success!",
-        description: "Please check your email for the confirmation link.",
+        description: "Your account has been created. You can now sign in.",
       });
+      
+      // Automatically switch to sign in tab after successful signup
+      const tabsList = document.querySelector('[role="tablist"]') as HTMLElement;
+      const signinTab = tabsList?.querySelector('[value="signin"]') as HTMLElement;
+      signinTab?.click();
+      
     } catch (error: any) {
       toast({
         variant: "destructive",

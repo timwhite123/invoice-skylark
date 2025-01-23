@@ -25,18 +25,16 @@ const Index = () => {
 
           {/* Upload Section */}
           <Card className="p-8 text-center animate-fadeIn bg-gradient-to-br from-[#1A89FD]/5 to-[#F95FBD]/5 border-[#1A89FD]/20">
-            <div className="mb-6">
+            <div className="border-2 border-dashed border-[#1A89FD]/20 rounded-lg p-12 hover:border-[#1A89FD]/40 hover:bg-[#1A89FD]/5 transition-all duration-300 cursor-pointer">
               <div className="mx-auto w-16 h-16 bg-[#1A89FD]/10 rounded-full flex items-center justify-center mb-4">
                 <Upload className="w-8 h-8 text-[#1A89FD]" />
               </div>
               <h2 className="text-2xl font-semibold text-[#0036CA] mb-3">Upload up to 5 PDF files</h2>
               <p className="text-gray-600 mb-2">10MB maximum per file</p>
               <p className="text-gray-500">Drag and drop your files here or click "Choose Files" to select them from your device</p>
-            </div>
-            <div className="border-2 border-dashed border-[#1A89FD]/20 rounded-lg p-12 hover:border-[#1A89FD]/40 hover:bg-[#1A89FD]/5 transition-all duration-300 cursor-pointer">
               <Button 
                 variant="outline" 
-                className="mx-auto bg-white hover:bg-[#1A89FD] hover:text-white transition-colors border-[#1A89FD]/30 text-[#0036CA] hover:border-transparent"
+                className="mx-auto mt-6 bg-white hover:bg-[#1A89FD] hover:text-white transition-colors border-[#1A89FD]/30 text-[#0036CA] hover:border-transparent"
               >
                 Choose Files
               </Button>

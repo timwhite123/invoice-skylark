@@ -28,7 +28,7 @@ const Index = () => {
             <div className="mx-auto w-16 h-16 bg-[#1A89FD]/10 rounded-full flex items-center justify-center mb-4">
               <Upload className="w-8 h-8 text-[#1A89FD]" />
             </div>
-            <h2 className="text-2xl font-semibold text-[#0036CA] mb-3">Upload up to 5 PDF files</h2>
+            <h2 className="text-2xl font-semibold text-[#0036CA] mb-3">Upload up to 5 PDF Invoices</h2>
             <p className="text-gray-600 mb-2">10MB maximum per file</p>
             <p className="text-gray-500">Drag and drop your files here or click "Choose Files" to select them from your device</p>
             <Button 

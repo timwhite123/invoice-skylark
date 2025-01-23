@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Check, ChevronRight, CreditCard, Star } from "lucide-react";
+import { InvoiceUpload } from "@/components/invoices/InvoiceUpload";
 
 // Mock data - replace with real data from backend
 const userData = {
@@ -37,6 +38,19 @@ const Account = () => {
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl space-y-8 animate-fadeIn">
       <h1 className="text-3xl font-bold">Account Settings</h1>
+
+      {/* Invoice Upload Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload Invoice</CardTitle>
+          <CardDescription>
+            Drop your invoice PDF here to automatically extract its information
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <InvoiceUpload />
+        </CardContent>
+      </Card>
 
       {/* Profile Section */}
       <Card>

@@ -2,15 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, FileText, Download } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ExportMenu } from "@/components/invoices/ExportMenu";
 
 const Index = () => {
   const [greeting, setGreeting] = useState("");
+  const [hasProcessedInvoices, setHasProcessedInvoices] = useState(false); // In a real app, this would come from your backend
+  const userPlan = "free"; // This would come from your user context/auth
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting("Good morning");
     else if (hour < 18) setGreeting("Good afternoon");
     else setGreeting("Good evening");
+
+    // Simulate checking for processed invoices
+    // In a real app, this would be an API call
+    setHasProcessedInvoices(true);
   }, []);
 
   return (
@@ -39,6 +47,32 @@ const Index = () => {
             </Button>
           </Card>
 
+          {/* Export Section - Only shown after processing */}
+          {hasProcessedInvoices && (
+            <Card className="p-6 animate-fadeIn">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-primary-800">Quick Export</h2>
+                  <p className="text-sm text-gray-500">Export your processed invoices</p>
+                </div>
+                <Link to="/invoices">
+                  <Button variant="outline" size="sm">
+                    View All Invoices
+                  </Button>
+                </Link>
+              </div>
+              <div className="flex items-center justify-between">
+                <ExportMenu userPlan={userPlan} onExport={(format) => console.log(`Exporting as ${format}`)} />
+                <p className="text-sm text-gray-500">
+                  Need more export options? 
+                  <Link to="/pricing" className="text-primary ml-1 hover:underline">
+                    Upgrade your plan
+                  </Link>
+                </p>
+              </div>
+            </Card>
+          )}
+
           {/* Recent Invoices */}
           <Card className="p-6 animate-fadeIn">
             <div className="flex justify-between items-center mb-6">
@@ -46,38 +80,14 @@ const Index = () => {
                 <h2 className="text-lg font-semibold text-primary-800">Recent Invoices</h2>
                 <p className="text-sm text-gray-500">Your latest processed documents</p>
               </div>
-              <Button variant="outline" size="sm">
-                View All
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/invoices">View All</Link>
               </Button>
             </div>
             <div className="text-center py-8 text-gray-500">
               <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
               <p>No invoices processed yet</p>
               <p className="text-sm">Upload your first invoice to get started</p>
-            </div>
-          </Card>
-
-          {/* Export Section */}
-          <Card className="p-6 animate-fadeIn">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-lg font-semibold text-primary-800">Export Options</h2>
-                <p className="text-sm text-gray-500">Download your processed data</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button variant="outline" className="w-full" disabled>
-                <Download className="w-4 h-4 mr-2" />
-                Export as CSV
-              </Button>
-              <Button variant="outline" className="w-full" disabled>
-                <Download className="w-4 h-4 mr-2" />
-                Export as JSON
-              </Button>
-              <Button variant="outline" className="w-full" disabled>
-                <Download className="w-4 h-4 mr-2" />
-                Export as Excel
-              </Button>
             </div>
           </Card>
         </div>

@@ -1,14 +1,28 @@
-import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, FileText, Download } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const Index = () => {
+  const [greeting, setGreeting] = useState("");
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("Good morning");
+    else if (hour < 18) setGreeting("Good afternoon");
+    else setGreeting("Good evening");
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="grid gap-6">
+          {/* Welcome Message */}
+          <div className="text-left">
+            <h1 className="text-2xl font-bold text-primary-800 mb-2">{greeting}</h1>
+            <p className="text-gray-600">Upload an invoice to get started with processing</p>
+          </div>
+
           {/* Upload Section */}
           <Card className="p-8 text-center animate-fadeIn">
             <div className="mb-4">

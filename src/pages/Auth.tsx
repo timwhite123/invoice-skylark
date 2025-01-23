@@ -93,19 +93,19 @@ const Auth = () => {
 
   if (resetPassword) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <img 
           src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
           alt="InvoiceJet.ai"
-          className="h-8 w-auto mb-8"
+          className="h-6 w-auto mb-6"
         />
-        <Card className="w-full max-w-md p-6 space-y-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-bold">Reset Password</h1>
-            <p className="text-gray-500">Enter your email to reset your password</p>
+        <Card className="w-full max-w-sm p-4 space-y-4">
+          <div className="space-y-1.5 text-center">
+            <h1 className="text-xl font-semibold">Reset Password</h1>
+            <p className="text-sm text-gray-500">Enter your email to reset your password</p>
           </div>
-          <form onSubmit={handlePasswordReset} className="space-y-4">
-            <div className="space-y-2">
+          <form onSubmit={handlePasswordReset} className="space-y-3">
+            <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -134,27 +134,27 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <img 
         src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
         alt="InvoiceJet.ai"
-        className="h-12 w-auto mb-8"
+        className="h-6 w-auto mb-6"
       />
-      <Card className="w-full max-w-md p-6">
-        <Tabs defaultValue="signin" className="space-y-6">
+      <Card className="w-full max-w-sm p-4">
+        <Tabs defaultValue="signin" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin">
-            <div className="space-y-6">
-              <div className="space-y-2 text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-gray-500">Sign in to your account</p>
+            <div className="space-y-4">
+              <div className="space-y-1.5 text-center">
+                <h1 className="text-xl font-semibold">Welcome back</h1>
+                <p className="text-sm text-gray-500">Sign in to your account</p>
               </div>
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
+              <form onSubmit={handleSignIn} className="space-y-3">
+                <div className="space-y-1.5">
                   <Label htmlFor="signin-email">Email</Label>
                   <Input
                     id="signin-email"
@@ -165,7 +165,7 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="signin-password">Password</Label>
                   <Input
                     id="signin-password"
@@ -178,7 +178,7 @@ const Auth = () => {
                 <Button
                   type="button"
                   variant="link"
-                  className="text-sm"
+                  className="text-xs px-0"
                   onClick={() => setResetPassword(true)}
                 >
                   Forgot password?
@@ -191,13 +191,13 @@ const Auth = () => {
           </TabsContent>
 
           <TabsContent value="signup">
-            <div className="space-y-6">
-              <div className="space-y-2 text-center">
-                <h1 className="text-2xl font-bold">Create an account</h1>
-                <p className="text-gray-500">Enter your details to get started</p>
+            <div className="space-y-4">
+              <div className="space-y-1.5 text-center">
+                <h1 className="text-xl font-semibold">Create an account</h1>
+                <p className="text-sm text-gray-500">Enter your details to get started</p>
               </div>
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
+              <form onSubmit={handleSignUp} className="space-y-3">
+                <div className="space-y-1.5">
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input
                     id="fullName"
@@ -208,7 +208,7 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input
                     id="signup-email"
@@ -219,7 +219,7 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"

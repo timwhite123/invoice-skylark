@@ -18,11 +18,32 @@ import {
 } from "@/components/ui/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Search, FileDown, Trash2, Merge, Tag } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+
+// Mock user plan for now - will be replaced with actual user plan from Supabase
+const userPlan = "free"; // "free" | "pro" | "enterprise"
 
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedInvoices, setSelectedInvoices] = useState<number[]>([]);
+  const { toast } = useToast();
 
   // Temporary mock data until we connect to Supabase
   const mockInvoices = Array.from({ length: 15 }, (_, i) => ({
@@ -32,6 +53,7 @@ const Invoices = () => {
     date: new Date(2024, 0, i + 1).toLocaleDateString(),
     amount: `$${(Math.random() * 1000).toFixed(2)}`,
     status: i % 3 === 0 ? "Processed" : i % 3 === 1 ? "Pending" : "Failed",
+    tags: [] as string[],
   }));
 
   const filteredInvoices = mockInvoices.filter(
@@ -48,18 +70,129 @@ const Invoices = () => {
     startIndex + itemsPerPage
   );
 
+  const handleExport = (format: "text" | "csv" | "json" | "excel") => {
+    if (userPlan === "free" && format !== "text") {
+      toast({
+        title: "Feature not available",
+        description: "Upgrade to Pro or Enterprise to access additional export formats.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Export started",
+      description: `Exporting selected invoices as ${format.toUpperCase()}`,
+    });
+    // Export logic will be implemented later
+  };
+
+  const handleMerge = () => {
+    if (userPlan === "free") {
+      toast({
+        title: "Feature not available",
+        description: "Upgrade to Pro or Enterprise to merge invoices.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedInvoices.length < 2) {
+      toast({
+        title: "Select invoices",
+        description: "Please select at least 2 invoices to merge.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Merging invoices",
+      description: `Merging ${selectedInvoices.length} invoices`,
+    });
+    // Merge logic will be implemented later
+  };
+
+  const handleDelete = () => {
+    if (selectedInvoices.length === 0) {
+      toast({
+        title: "Select invoices",
+        description: "Please select at least one invoice to delete.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Deleting invoices",
+      description: `Deleting ${selectedInvoices.length} invoices`,
+    });
+    // Delete logic will be implemented later
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Invoice History</h1>
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search invoices..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search invoices..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <FileDown className="h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleExport("text")}>
+                  Text
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleExport("csv")}
+                  className={userPlan === "free" ? "opacity-50" : ""}
+                >
+                  CSV {userPlan === "free" && "(Pro)"}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleExport("json")}
+                  className={userPlan === "free" ? "opacity-50" : ""}
+                >
+                  JSON {userPlan === "free" && "(Pro)"}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleExport("excel")}
+                  className={userPlan === "free" ? "opacity-50" : ""}
+                >
+                  Excel {userPlan === "free" && "(Pro)"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={handleMerge}
+            >
+              <Merge className="h-4 w-4" />
+              Merge
+            </Button>
+            <Button 
+              variant="outline" 
+              className="gap-2 text-destructive"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -67,17 +200,45 @@ const Invoices = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <input
+                  type="checkbox"
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedInvoices(paginatedInvoices.map(inv => inv.id));
+                    } else {
+                      setSelectedInvoices([]);
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+              </TableHead>
               <TableHead>Invoice Number</TableHead>
               <TableHead>Vendor</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Tags</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedInvoices.map((invoice) => (
               <TableRow key={invoice.id}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    checked={selectedInvoices.includes(invoice.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedInvoices([...selectedInvoices, invoice.id]);
+                      } else {
+                        setSelectedInvoices(selectedInvoices.filter(id => id !== invoice.id));
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                </TableCell>
                 <TableCell className="font-medium">
                   {invoice.invoiceNumber}
                 </TableCell>
@@ -85,24 +246,48 @@ const Invoices = () => {
                 <TableCell>{invoice.date}</TableCell>
                 <TableCell>{invoice.amount}</TableCell>
                 <TableCell>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  <Badge
+                    variant={
                       invoice.status === "Processed"
-                        ? "bg-green-100 text-green-800"
+                        ? "default"
                         : invoice.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
+                        ? "secondary"
+                        : "destructive"
+                    }
                   >
                     {invoice.status}
-                  </span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Tag className="h-4 w-4" />
+                        Manage Tags
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Manage Tags</DialogTitle>
+                        <DialogDescription>
+                          Add or remove tags for invoice {invoice.invoiceNumber}
+                        </DialogDescription>
+                      </DialogHeader>
+                      {/* Tag management UI will be implemented later */}
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        <Badge>Example Tag</Badge>
+                        <Button variant="outline" size="sm">
+                          + Add Tag
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      // Will implement view details later
                       console.log("View details for invoice:", invoice.id);
                     }}
                   >

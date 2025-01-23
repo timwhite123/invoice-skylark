@@ -5,7 +5,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { FileDown } from "lucide-react";
+import { FileDown, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExportMenuProps {
@@ -45,19 +45,19 @@ export const ExportMenu = ({ userPlan, onExport, isMerged = false }: ExportMenuP
           onClick={() => handleExport("csv")}
           className={userPlan === "free" ? "opacity-50" : ""}
         >
-          CSV {userPlan === "free" && "(Pro)"}
+          CSV {userPlan === "free" && <Lock className="h-3 w-3 ml-2" />}
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={() => handleExport("json")}
           className={userPlan === "free" ? "opacity-50" : ""}
         >
-          JSON {userPlan === "free" && "(Pro)"}
+          JSON {userPlan === "free" && <Lock className="h-3 w-3 ml-2" />}
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={() => handleExport("excel")}
           className={userPlan === "free" ? "opacity-50" : ""}
         >
-          Excel {userPlan === "free" && "(Pro)"}
+          Excel {userPlan === "free" && <Lock className="h-3 w-3 ml-2" />}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

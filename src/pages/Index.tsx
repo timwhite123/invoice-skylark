@@ -4,11 +4,12 @@ import { Upload, FileText, Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ExportMenu } from "@/components/invoices/ExportMenu";
+import { InvoiceUpload } from "@/components/invoices/InvoiceUpload";
 
 const Index = () => {
   const [greeting, setGreeting] = useState("");
-  const [hasProcessedInvoices, setHasProcessedInvoices] = useState(false); // In a real app, this would come from your backend
-  const userPlan = "free"; // This would come from your user context/auth
+  const [hasProcessedInvoices, setHasProcessedInvoices] = useState(false);
+  const userPlan = "free";
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -16,8 +17,6 @@ const Index = () => {
     else if (hour < 18) setGreeting("Good afternoon");
     else setGreeting("Good evening");
 
-    // Simulate checking for processed invoices
-    // In a real app, this would be an API call
     setHasProcessedInvoices(true);
   }, []);
 
@@ -32,19 +31,8 @@ const Index = () => {
           </div>
 
           {/* Upload Section */}
-          <Card className="p-8 text-center animate-fadeIn bg-gradient-to-br from-[#1A89FD]/5 to-[#F95FBD]/5 border-[#1A89FD]/20 border-2 border-dashed hover:border-[#1A89FD]/40 hover:bg-[#1A89FD]/5 transition-all duration-300 cursor-pointer">
-            <div className="mx-auto w-16 h-16 bg-[#1A89FD]/10 rounded-full flex items-center justify-center mb-4">
-              <Upload className="w-8 h-8 text-[#1A89FD]" />
-            </div>
-            <h2 className="text-2xl font-semibold text-[#0036CA] mb-3">Upload up to 5 PDF Invoices</h2>
-            <p className="text-gray-600 mb-2">10MB maximum per file</p>
-            <p className="text-gray-500">Drag and drop your files here or click "Choose Files" to select them from your device</p>
-            <Button 
-              variant="outline" 
-              className="mx-auto mt-6 bg-white hover:bg-[#1A89FD] hover:text-white transition-colors border-[#1A89FD]/30 text-[#0036CA] hover:border-transparent"
-            >
-              Choose Files
-            </Button>
+          <Card className="p-8 text-center animate-fadeIn bg-gradient-to-br from-[#1A89FD]/5 to-[#F95FBD]/5 border-[#1A89FD]/20 border-2 border-dashed hover:border-[#1A89FD]/40 hover:bg-[#1A89FD]/5 transition-all duration-300">
+            <InvoiceUpload />
           </Card>
 
           {/* Export Section - Only shown after processing */}

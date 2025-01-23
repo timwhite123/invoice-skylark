@@ -1,5 +1,6 @@
-import { ChevronDown, FileText, Home, LogOut, User } from "lucide-react";
+import { ChevronDown, FileText, Home, LogOut, Menu, User, X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -14,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 // Mock data - replace with actual data when connected to backend
@@ -24,6 +26,25 @@ const userPlan = {
 };
 
 export const Navigation = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const UsageStats = () => (
+    <Link 
+      to="/pricing" 
+      className="text-sm text-gray-600 hover:text-primary transition-colors group flex items-center gap-2"
+    >
+      <div className="flex flex-col">
+        <span className="font-medium capitalize">{userPlan.type} Plan</span>
+        <span className="text-xs">
+          {userPlan.processedInvoices}/{userPlan.monthlyLimit} invoices used
+        </span>
+      </div>
+      <span className="hidden group-hover:inline text-xs text-primary font-medium">
+        Upgrade →
+      </span>
+    </Link>
+  );
+
   return (
     <NavigationMenu className="max-w-none w-full bg-white border-b">
       <div className="container mx-auto py-2">
@@ -33,24 +54,10 @@ export const Navigation = () => {
             <span className="text-xl font-bold text-primary">InvoiceJet.ai</span>
           </Link>
 
-          <div className="flex items-center gap-8">
-            {/* Usage Stats */}
-            <Link 
-              to="/pricing" 
-              className="text-sm text-gray-600 hover:text-primary transition-colors group flex items-center gap-2"
-            >
-              <div className="flex flex-col">
-                <span className="font-medium capitalize">{userPlan.type} Plan</span>
-                <span className="text-xs">
-                  {userPlan.processedInvoices}/{userPlan.monthlyLimit} invoices used
-                </span>
-              </div>
-              <span className="hidden group-hover:inline text-xs text-primary font-medium">
-                Upgrade →
-              </span>
-            </Link>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-8">
+            <UsageStats />
 
-            {/* Main Navigation */}
             <NavigationMenuList>
               <NavigationMenuItem>
                 <Link to="/">
@@ -70,7 +77,6 @@ export const Navigation = () => {
               </NavigationMenuItem>
             </NavigationMenuList>
 
-            {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2">
@@ -98,6 +104,65 @@ export const Navigation = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <div className="flex flex-col gap-8 mt-8">
+                  <UsageStats />
+                  
+                  <nav className="flex flex-col gap-4">
+                    <Link 
+                      to="/" 
+                      className="flex items-center gap-2 text-lg font-medium hover:text-primary transition-colors"
+                    >
+                      <Home className="h-5 w-5" />
+                      Home
+                    </Link>
+                    <Link 
+                      to="/invoices" 
+                      className="flex items-center gap-2 text-lg font-medium hover:text-primary transition-colors"
+                    >
+                      <FileText className="h-5 w-5" />
+                      Invoices
+                    </Link>
+                  </nav>
+
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground">Account</h3>
+                    <nav className="flex flex-col gap-4">
+                      <Link 
+                        to="/account" 
+                        className="flex items-center gap-2 text-lg font-medium hover:text-primary transition-colors"
+                      >
+                        <User className="h-5 w-5" />
+                        My Account
+                      </Link>
+                      <Link 
+                        to="/pricing" 
+                        className="flex items-center gap-2 text-lg font-medium hover:text-primary transition-colors"
+                      >
+                        <FileText className="h-5 w-5" />
+                        Plans & Pricing
+                      </Link>
+                      <button 
+                        className="flex items-center gap-2 text-lg font-medium text-red-600 hover:text-red-700 transition-colors"
+                      >
+                        <LogOut className="h-5 w-5" />
+                        Sign Out
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

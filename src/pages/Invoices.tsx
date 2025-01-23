@@ -70,7 +70,7 @@ const Invoices = () => {
     startIndex + itemsPerPage
   );
 
-  const handleExport = (format: "text" | "csv" | "json" | "excel") => {
+  const handleExport = (format: "text" | "csv" | "json" | "excel", isMerged: boolean = false) => {
     if (userPlan === "free" && format !== "text") {
       toast({
         title: "Feature not available",
@@ -82,7 +82,7 @@ const Invoices = () => {
     
     toast({
       title: "Export started",
-      description: `Exporting selected invoices as ${format.toUpperCase()}`,
+      description: `Exporting ${isMerged ? 'merged' : 'selected'} invoices as ${format.toUpperCase()}`,
     });
     // Export logic will be implemented later
   };
@@ -144,55 +144,97 @@ const Invoices = () => {
               className="pl-9"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <FileDown className="h-4 w-4" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleExport("text")}>
-                  Text
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleExport("csv")}
-                  className={userPlan === "free" ? "opacity-50" : ""}
-                >
-                  CSV {userPlan === "free" && "(Pro)"}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleExport("json")}
-                  className={userPlan === "free" ? "opacity-50" : ""}
-                >
-                  JSON {userPlan === "free" && "(Pro)"}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleExport("excel")}
-                  className={userPlan === "free" ? "opacity-50" : ""}
-                >
-                  Excel {userPlan === "free" && "(Pro)"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button 
-              variant="outline" 
-              className="gap-2"
-              onClick={handleMerge}
-            >
-              <Merge className="h-4 w-4" />
-              Merge
-            </Button>
-            <Button 
-              variant="outline" 
-              className="gap-2 text-destructive"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </Button>
-          </div>
+          {selectedInvoices.length > 0 && (
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <FileDown className="h-4 w-4" />
+                    Export Selected
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => handleExport("text")}>
+                    Text
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleExport("csv")}
+                    className={userPlan === "free" ? "opacity-50" : ""}
+                  >
+                    CSV {userPlan === "free" && "(Pro)"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleExport("json")}
+                    className={userPlan === "free" ? "opacity-50" : ""}
+                  >
+                    JSON {userPlan === "free" && "(Pro)"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleExport("excel")}
+                    className={userPlan === "free" ? "opacity-50" : ""}
+                  >
+                    Excel {userPlan === "free" && "(Pro)"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {selectedInvoices.length >= 2 && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={handleMerge}
+                    disabled={userPlan === "free"}
+                  >
+                    <Merge className="h-4 w-4" />
+                    Merge
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="gap-2"
+                        disabled={userPlan === "free"}
+                      >
+                        <FileDown className="h-4 w-4" />
+                        Export Merged
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleExport("text", true)}>
+                        Text
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleExport("csv", true)}
+                        className={userPlan === "free" ? "opacity-50" : ""}
+                      >
+                        CSV {userPlan === "free" && "(Pro)"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleExport("json", true)}
+                        className={userPlan === "free" ? "opacity-50" : ""}
+                      >
+                        JSON {userPlan === "free" && "(Pro)"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleExport("excel", true)}
+                        className={userPlan === "free" ? "opacity-50" : ""}
+                      >
+                        Excel {userPlan === "free" && "(Pro)"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
+              <Button 
+                variant="outline" 
+                className="gap-2 text-destructive"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -273,7 +315,6 @@ const Invoices = () => {
                           Add or remove tags for invoice {invoice.invoiceNumber}
                         </DialogDescription>
                       </DialogHeader>
-                      {/* Tag management UI will be implemented later */}
                       <div className="flex flex-wrap gap-2 mt-4">
                         <Badge>Example Tag</Badge>
                         <Button variant="outline" size="sm">

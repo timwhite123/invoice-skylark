@@ -56,7 +56,7 @@ export const Navigation = () => {
             <img 
               src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
               alt="InvoiceJet.ai"
-              className="h-8 w-auto"
+              className="h-6 w-auto"
             />
           </Link>
 
@@ -113,9 +113,7 @@ export const Navigation = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
-            ) : (
-              <Button onClick={() => navigate("/auth")}>Sign In</Button>
-            )}
+            ) : null}
           </div>
 
           {/* Mobile Navigation */}

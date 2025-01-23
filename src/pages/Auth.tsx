@@ -97,7 +97,7 @@ const Auth = () => {
         <img 
           src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
           alt="InvoiceJet.ai"
-          className="h-12 w-auto mb-8"
+          className="h-8 w-auto mb-8"
         />
         <Card className="w-full max-w-md p-6 space-y-6">
           <div className="space-y-2 text-center">

@@ -1,38 +1,90 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Check, ChevronRight, CreditCard, Star } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
-// Mock data - replace with real data from backend
-const userData = {
-  name: "John Doe",
-  email: "john@example.com",
-  plan: "Free",
-  renewalDate: "2024-05-01",
-  invoicesUsed: 3,
-  invoicesLimit: 5,
-  planFeatures: {
-    free: [
-      "Process up to 5 invoices/month",
-      "7-day PDF storage",
-      "Basic text export only",
-      "AI-based data extraction",
-      "Standard support",
-    ],
-    pro: [
-      "Process up to 150 invoices/month",
-      "30-day PDF storage",
-      "AI-based data extraction",
-      "Excel, CSV, JSON, and Text exports",
-      "Smart invoice merging",
-      "Priority support",
-    ],
-  },
+// Types for profile data
+type Profile = {
+  full_name: string | null;
+  email: string;
 };
 
 const Account = () => {
-  const isFreePlan = userData.plan === "Free";
-  const usagePercentage = (userData.invoicesUsed / userData.invoicesLimit) * 100;
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Mock data for plan information - this would come from your subscription service
+  const planData = {
+    plan: "Free",
+    renewalDate: new Date().toISOString(),
+    invoicesUsed: 3,
+    invoicesLimit: 5,
+    planFeatures: {
+      free: [
+        "Process up to 5 invoices/month",
+        "7-day PDF storage",
+        "Basic text export only",
+        "AI-based data extraction",
+        "Standard support",
+      ],
+      pro: [
+        "Process up to 150 invoices/month",
+        "30-day PDF storage",
+        "AI-based data extraction",
+        "Excel, CSV, JSON, and Text exports",
+        "Smart invoice merging",
+        "Priority support",
+      ],
+    },
+  };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        setProfile(data);
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Error fetching profile",
+          description: error.message,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user, toast]);
+
+  const isFreePlan = planData.plan === "Free";
+  const usagePercentage = (planData.invoicesUsed / planData.invoicesLimit) * 100;
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-5xl">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 bg-gray-200 rounded"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl space-y-8 animate-fadeIn">
@@ -47,11 +99,11 @@ const Account = () => {
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium text-muted-foreground">Name</label>
-            <p className="text-lg">{userData.name}</p>
+            <p className="text-lg">{profile?.full_name || 'Not set'}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-muted-foreground">Email</label>
-            <p className="text-lg">{userData.email}</p>
+            <p className="text-lg">{profile?.email || user?.email}</p>
           </div>
         </CardContent>
       </Card>
@@ -59,9 +111,9 @@ const Account = () => {
       {/* Subscription Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Current Plan: {userData.plan}</CardTitle>
+          <CardTitle>Current Plan: {planData.plan}</CardTitle>
           <CardDescription>
-            Your plan renews on {new Date(userData.renewalDate).toLocaleDateString()}
+            Your plan renews on {new Date(planData.renewalDate).toLocaleDateString()}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -69,7 +121,7 @@ const Account = () => {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Monthly Invoice Usage</span>
-              <span>{userData.invoicesUsed} / {userData.invoicesLimit}</span>
+              <span>{planData.invoicesUsed} / {planData.invoicesLimit}</span>
             </div>
             <Progress value={usagePercentage} className="h-2" />
           </div>
@@ -78,7 +130,7 @@ const Account = () => {
           <div className="space-y-4">
             <h3 className="font-medium">Your Plan Includes:</h3>
             <ul className="space-y-2">
-              {userData.planFeatures[isFreePlan ? 'free' : 'pro'].map((feature) => (
+              {planData.planFeatures[isFreePlan ? 'free' : 'pro'].map((feature) => (
                 <li key={feature} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />
                   <span>{feature}</span>
@@ -107,7 +159,7 @@ const Account = () => {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {userData.planFeatures.pro.map((feature) => (
+              {planData.planFeatures.pro.map((feature) => (
                 <li key={feature} className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />
                   <span>{feature}</span>

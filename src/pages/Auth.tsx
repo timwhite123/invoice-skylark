@@ -93,7 +93,12 @@ const Auth = () => {
 
   if (resetPassword) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <img 
+          src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
+          alt="InvoiceJet.ai"
+          className="h-12 w-auto mb-8"
+        />
         <Card className="w-full max-w-md p-6 space-y-6">
           <div className="space-y-2 text-center">
             <h1 className="text-2xl font-bold">Reset Password</h1>
@@ -129,7 +134,12 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <img 
+        src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
+        alt="InvoiceJet.ai"
+        className="h-12 w-auto mb-8"
+      />
       <Card className="w-full max-w-md p-6">
         <Tabs defaultValue="signin" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">

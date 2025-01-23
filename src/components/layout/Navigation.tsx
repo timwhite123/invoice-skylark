@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
 // Mock data - replace with actual data when connected to backend
@@ -54,7 +53,11 @@ export const Navigation = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <span className="text-xl font-bold text-primary">InvoiceJet.ai</span>
+            <img 
+              src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
+              alt="InvoiceJet.ai"
+              className="h-8 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}

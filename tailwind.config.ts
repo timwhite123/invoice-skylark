@@ -24,8 +24,18 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        brand: {
+          blue: {
+            light: "#8ac3fd",
+            DEFAULT: "#1A89FD",
+            dark: "#0036CA",
+          },
+          orange: "#FEA320",
+          pink: "#F95FBD",
+          yellow: "#F7D115",
+        },
         primary: {
-          DEFAULT: "#1E293B",
+          DEFAULT: "#1A89FD",
           foreground: "#FFFFFF",
           100: "#F1F5F9",
           200: "#E2E8F0",
@@ -88,6 +98,9 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         fadeIn: "fadeIn 0.5s ease-out",
+      },
+      backgroundImage: {
+        'gradient-brand': 'linear-gradient(109.6deg, rgba(223,234,247,1) 11.2%, rgba(244,248,252,1) 91.1%)',
       },
     },
   },

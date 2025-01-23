@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import { Search, Trash2, Merge } from "lucide-react";
+import { Search, Trash2, Merge, ArrowUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TagManager } from "@/components/invoices/TagManager";
 import { ExportMenu } from "@/components/invoices/ExportMenu";
@@ -26,10 +26,15 @@ import { ExportMenu } from "@/components/invoices/ExportMenu";
 // Mock user plan for now - will be replaced with actual user plan from Supabase
 const userPlan = "free"; // "free" | "pro" | "enterprise"
 
+type SortDirection = "asc" | "desc" | null;
+type SortField = "vendor" | "invoiceNumber" | "dueDate" | null;
+
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedInvoices, setSelectedInvoices] = useState<number[]>([]);
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const { toast } = useToast();
 
   // Temporary mock data until we connect to Supabase
@@ -42,7 +47,36 @@ const Invoices = () => {
     tags: [] as string[],
   }));
 
-  const filteredInvoices = mockInvoices.filter(
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : sortDirection === "desc" ? null : "asc");
+      if (sortDirection === "desc") setSortField(null);
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortedInvoices = [...mockInvoices].sort((a, b) => {
+    if (!sortField || !sortDirection) return 0;
+    
+    const compareValue = (va: string, vb: string) => {
+      return sortDirection === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+    };
+
+    switch (sortField) {
+      case "vendor":
+        return compareValue(a.vendor, b.vendor);
+      case "invoiceNumber":
+        return compareValue(a.invoiceNumber, b.invoiceNumber);
+      case "dueDate":
+        return compareValue(a.dueDate, b.dueDate);
+      default:
+        return 0;
+    }
+  });
+
+  const filteredInvoices = sortedInvoices.filter(
     (invoice) =>
       invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.vendor.toLowerCase().includes(searchQuery.toLowerCase())
@@ -160,16 +194,16 @@ const Invoices = () => {
         </div>
       </div>
 
-      <ScrollArea className="h-[600px] rounded-md border">
+      <ScrollArea className="h-[600px] rounded-md border relative">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
+          <TableHeader className="sticky top-0 bg-background z-10 border-b">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-12 h-10">
                 <input
                   type="checkbox"
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedInvoices(paginatedInvoices.map(inv => inv.id));
+                      setSelectedInvoices(filteredInvoices.map(inv => inv.id));
                     } else {
                       setSelectedInvoices([]);
                     }
@@ -177,17 +211,41 @@ const Invoices = () => {
                   className="h-4 w-4 rounded border-gray-300"
                 />
               </TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Invoice ID</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Tags</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead 
+                className="h-10 text-xs font-medium cursor-pointer hover:bg-muted/50"
+                onClick={() => handleSort("vendor")}
+              >
+                <div className="flex items-center gap-1">
+                  Vendor
+                  <ArrowUpDown className="h-3 w-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="h-10 text-xs font-medium cursor-pointer hover:bg-muted/50"
+                onClick={() => handleSort("invoiceNumber")}
+              >
+                <div className="flex items-center gap-1">
+                  Invoice ID
+                  <ArrowUpDown className="h-3 w-3" />
+                </div>
+              </TableHead>
+              <TableHead 
+                className="h-10 text-xs font-medium cursor-pointer hover:bg-muted/50"
+                onClick={() => handleSort("dueDate")}
+              >
+                <div className="flex items-center gap-1">
+                  Due Date
+                  <ArrowUpDown className="h-3 w-3" />
+                </div>
+              </TableHead>
+              <TableHead className="h-10 text-xs font-medium">Tags</TableHead>
+              <TableHead className="text-right h-10 text-xs font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedInvoices.map((invoice) => (
-              <TableRow key={invoice.id}>
-                <TableCell>
+            {filteredInvoices.map((invoice) => (
+              <TableRow key={invoice.id} className="h-12">
+                <TableCell className="align-top pt-3">
                   <input
                     type="checkbox"
                     checked={selectedInvoices.includes(invoice.id)}
@@ -201,9 +259,9 @@ const Invoices = () => {
                     className="h-4 w-4 rounded border-gray-300"
                   />
                 </TableCell>
-                <TableCell>{invoice.vendor}</TableCell>
-                <TableCell>{invoice.invoiceNumber}</TableCell>
-                <TableCell>{invoice.dueDate}</TableCell>
+                <TableCell className="text-sm">{invoice.vendor}</TableCell>
+                <TableCell className="text-sm">{invoice.invoiceNumber}</TableCell>
+                <TableCell className="text-sm">{invoice.dueDate}</TableCell>
                 <TableCell>
                   <TagManager
                     invoiceId={invoice.id}

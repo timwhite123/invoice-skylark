@@ -93,13 +93,16 @@ const Auth = () => {
 
   if (resetPassword) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-3">
-        <img 
-          src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
-          alt="InvoiceJet.ai"
-          className="h-5 w-auto mb-4"
-        />
-        <Card className="w-full max-w-xs p-3 space-y-3">
+      <div className="min-h-screen flex flex-col items-center justify-center p-8">
+        <Card className="w-full max-w-xs p-6 space-y-4">
+          <div className="space-y-2">
+            <img 
+              src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
+              alt="InvoiceJet.ai"
+              className="h-5 w-auto mx-auto"
+            />
+            <p className="text-xs text-gray-500 text-center">Transforming Invoices. Made Easy.</p>
+          </div>
           <div className="space-y-1 text-center">
             <h1 className="text-lg font-semibold">Reset Password</h1>
             <p className="text-xs text-gray-500">Enter your email to reset your password</p>
@@ -135,13 +138,16 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-3">
-      <img 
-        src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
-        alt="InvoiceJet.ai"
-        className="h-5 w-auto mb-4"
-      />
-      <Card className="w-full max-w-xs p-3">
+    <div className="min-h-screen flex flex-col items-center justify-center p-8">
+      <Card className="w-full max-w-xs p-6">
+        <div className="space-y-2 mb-4">
+          <img 
+            src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
+            alt="InvoiceJet.ai"
+            className="h-5 w-auto mx-auto"
+          />
+          <p className="text-xs text-gray-500 text-center">Transforming Invoices. Made Easy.</p>
+        </div>
         <Tabs defaultValue="signin" className="space-y-3">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>

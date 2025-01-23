@@ -18,23 +18,10 @@ import {
 } from "@/components/ui/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Search, FileDown, Trash2, Merge, Tag } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Search, Trash2, Merge } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { TagManager } from "@/components/invoices/TagManager";
+import { ExportMenu } from "@/components/invoices/ExportMenu";
 
 // Mock user plan for now - will be replaced with actual user plan from Supabase
 const userPlan = "free"; // "free" | "pro" | "enterprise"
@@ -50,9 +37,8 @@ const Invoices = () => {
     id: i + 1,
     invoiceNumber: `INV-${2024}${String(i + 1).padStart(4, "0")}`,
     vendor: `Vendor ${i + 1}`,
-    date: new Date(2024, 0, i + 1).toLocaleDateString(),
+    dueDate: new Date(2024, 1, i + 15).toLocaleDateString(),
     amount: `$${(Math.random() * 1000).toFixed(2)}`,
-    status: i % 3 === 0 ? "Processed" : i % 3 === 1 ? "Pending" : "Failed",
     tags: [] as string[],
   }));
 
@@ -70,19 +56,10 @@ const Invoices = () => {
     startIndex + itemsPerPage
   );
 
-  const handleExport = (format: "text" | "csv" | "json" | "excel", isMerged: boolean = false) => {
-    if (userPlan === "free" && format !== "text") {
-      toast({
-        title: "Feature not available",
-        description: "Upgrade to Pro or Enterprise to access additional export formats.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+  const handleExport = (format: string) => {
     toast({
       title: "Export started",
-      description: `Exporting ${isMerged ? 'merged' : 'selected'} invoices as ${format.toUpperCase()}`,
+      description: `Exporting selected invoices as ${format.toUpperCase()}`,
     });
     // Export logic will be implemented later
   };
@@ -130,6 +107,11 @@ const Invoices = () => {
     // Delete logic will be implemented later
   };
 
+  const handleTagsUpdate = (invoiceId: number, newTags: string[]) => {
+    // Update tags logic will be implemented later
+    console.log("Updating tags for invoice", invoiceId, newTags);
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -146,37 +128,7 @@ const Invoices = () => {
           </div>
           {selectedInvoices.length > 0 && (
             <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <FileDown className="h-4 w-4" />
-                    Export Selected
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleExport("text")}>
-                    Text
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleExport("csv")}
-                    className={userPlan === "free" ? "opacity-50" : ""}
-                  >
-                    CSV {userPlan === "free" && "(Pro)"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleExport("json")}
-                    className={userPlan === "free" ? "opacity-50" : ""}
-                  >
-                    JSON {userPlan === "free" && "(Pro)"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleExport("excel")}
-                    className={userPlan === "free" ? "opacity-50" : ""}
-                  >
-                    Excel {userPlan === "free" && "(Pro)"}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ExportMenu userPlan={userPlan} onExport={handleExport} />
               {selectedInvoices.length >= 2 && (
                 <>
                   <Button 
@@ -188,41 +140,11 @@ const Invoices = () => {
                     <Merge className="h-4 w-4" />
                     Merge
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className="gap-2"
-                        disabled={userPlan === "free"}
-                      >
-                        <FileDown className="h-4 w-4" />
-                        Export Merged
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleExport("text", true)}>
-                        Text
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleExport("csv", true)}
-                        className={userPlan === "free" ? "opacity-50" : ""}
-                      >
-                        CSV {userPlan === "free" && "(Pro)"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleExport("json", true)}
-                        className={userPlan === "free" ? "opacity-50" : ""}
-                      >
-                        JSON {userPlan === "free" && "(Pro)"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleExport("excel", true)}
-                        className={userPlan === "free" ? "opacity-50" : ""}
-                      >
-                        Excel {userPlan === "free" && "(Pro)"}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <ExportMenu 
+                    userPlan={userPlan} 
+                    onExport={handleExport} 
+                    isMerged={true}
+                  />
                 </>
               )}
               <Button 
@@ -255,11 +177,9 @@ const Invoices = () => {
                   className="h-4 w-4 rounded border-gray-300"
                 />
               </TableHead>
-              <TableHead>Invoice Number</TableHead>
               <TableHead>Vendor</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Invoice ID</TableHead>
+              <TableHead>Due Date</TableHead>
               <TableHead>Tags</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -281,59 +201,18 @@ const Invoices = () => {
                     className="h-4 w-4 rounded border-gray-300"
                   />
                 </TableCell>
-                <TableCell className="font-medium">
-                  {invoice.invoiceNumber}
-                </TableCell>
                 <TableCell>{invoice.vendor}</TableCell>
-                <TableCell>{invoice.date}</TableCell>
-                <TableCell>{invoice.amount}</TableCell>
+                <TableCell>{invoice.invoiceNumber}</TableCell>
+                <TableCell>{invoice.dueDate}</TableCell>
                 <TableCell>
-                  <Badge
-                    variant={
-                      invoice.status === "Processed"
-                        ? "default"
-                        : invoice.status === "Pending"
-                        ? "secondary"
-                        : "destructive"
-                    }
-                  >
-                    {invoice.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Tag className="h-4 w-4" />
-                        Manage Tags
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Manage Tags</DialogTitle>
-                        <DialogDescription>
-                          Add or remove tags for invoice {invoice.invoiceNumber}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        <Badge>Example Tag</Badge>
-                        <Button variant="outline" size="sm">
-                          + Add Tag
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <TagManager
+                    invoiceId={invoice.id}
+                    currentTags={invoice.tags}
+                    onTagsUpdate={(tags) => handleTagsUpdate(invoice.id, tags)}
+                  />
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      console.log("View details for invoice:", invoice.id);
-                    }}
-                  >
-                    View Details
-                  </Button>
+                  <ExportMenu userPlan={userPlan} onExport={handleExport} />
                 </TableCell>
               </TableRow>
             ))}

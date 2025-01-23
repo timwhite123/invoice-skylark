@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Check, ChevronRight, CreditCard, Star } from "lucide-react";
-import { Link } from "react-router-dom";
 
 // Mock data - replace with real data from backend
 const userData = {
@@ -10,22 +9,23 @@ const userData = {
   email: "john@example.com",
   plan: "Free",
   renewalDate: "2024-05-01",
-  invoicesUsed: 45,
-  invoicesLimit: 50,
+  invoicesUsed: 3,
+  invoicesLimit: 5,
   planFeatures: {
     free: [
-      "50 invoices per month",
-      "Basic text export",
-      "Manual data entry",
-      "Basic support",
+      "Process up to 5 invoices/month",
+      "7-day PDF storage",
+      "Basic text export only",
+      "AI-based data extraction",
+      "Standard support",
     ],
     pro: [
-      "Unlimited invoices",
-      "All export formats",
-      "Invoice merging",
+      "Process up to 150 invoices/month",
+      "30-day PDF storage",
+      "AI-based data extraction",
+      "Excel, CSV, JSON, and Text exports",
+      "Smart invoice merging",
       "Priority support",
-      "Custom tagging",
-      "API access",
     ],
   },
 };
@@ -109,7 +109,7 @@ const Account = () => {
               <Star className="h-5 w-5" />
               Unlock Pro Features
             </CardTitle>
-            <CardDescription>Get access to advanced features and unlimited invoices</CardDescription>
+            <CardDescription>Get access to advanced features and more invoices per month</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">

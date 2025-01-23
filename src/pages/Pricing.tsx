@@ -14,45 +14,50 @@ const PricingPage = () => {
       annualPrice: "0",
       description: "Perfect for getting started",
       features: [
-        "5 invoices/month",
+        "Process up to 5 invoices/month",
         "7-day PDF storage",
-        "Basic text export",
+        "Basic text export only",
         "AI-based data extraction",
         "Standard support",
       ],
-      buttonText: "Get Started",
+      buttonText: "Current Plan",
       popular: false,
+      buttonVariant: "outline" as const,
     },
     {
       name: "Pro",
       monthlyPrice: "19.97",
       annualPrice: "199.70",
-      description: "Best for growing businesses",
+      description: "Great for small businesses",
       features: [
-        "150 invoices/month",
+        "Process up to 150 invoices/month",
         "30-day PDF storage",
-        "Excel, CSV, JSON exports",
+        "AI-based data extraction",
+        "Excel, CSV, JSON, and Text exports",
         "Smart invoice merging",
         "Priority support",
       ],
-      buttonText: "Subscribe Now",
+      buttonText: "Upgrade to Pro",
       popular: true,
+      buttonVariant: "default" as const,
     },
     {
       name: "Enterprise",
       monthlyPrice: "54.98",
       annualPrice: "549.80",
-      description: "For large scale operations",
+      description: "For large organizations",
       features: [
-        "Unlimited invoices",
+        "Unlimited invoice processing",
         "90-day PDF storage",
-        "All export formats",
+        "AI-based data extraction",
+        "Excel, CSV, JSON, and Text exports",
         "Smart invoice merging",
-        "Team features",
+        "Tailored solutions for teams (coming soon)",
         "Premium support",
       ],
-      buttonText: "Contact Sales",
+      buttonText: "Get Started",
       popular: false,
+      buttonVariant: "default" as const,
     },
   ];
 
@@ -88,12 +93,12 @@ const PricingPage = () => {
             <Card 
               key={plan.name}
               className={`relative flex flex-col ${
-                plan.popular ? 'border-primary-600 shadow-lg scale-105' : ''
+                plan.popular ? 'border-primary shadow-lg scale-105' : ''
               }`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
                     Most Popular
                   </span>
                 </div>
@@ -127,10 +132,8 @@ const PricingPage = () => {
               </CardContent>
               <CardFooter>
                 <Button 
-                  className={`w-full ${
-                    plan.popular ? 'bg-primary-600 hover:bg-primary-700' : ''
-                  }`}
-                  variant={plan.popular ? "default" : "outline"}
+                  className="w-full"
+                  variant={plan.buttonVariant}
                 >
                   {plan.buttonText}
                 </Button>

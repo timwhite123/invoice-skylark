@@ -50,6 +50,13 @@ export const TagManager = ({ invoiceId, currentTags, onTagsUpdate }: TagManagerP
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
   const handleRemoveTag = (tagToRemove: string) => {
     const updatedTags = tags.filter(tag => tag !== tagToRemove);
     setTags(updatedTags);
@@ -85,6 +92,7 @@ export const TagManager = ({ invoiceId, currentTags, onTagsUpdate }: TagManagerP
               placeholder="Add new tag"
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
+              onKeyPress={handleKeyPress}
               maxLength={20}
             />
             <Button onClick={handleAddTag}>Add</Button>

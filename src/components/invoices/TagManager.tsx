@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ export const TagManager = ({ invoiceId, currentTags, onTagsUpdate }: TagManagerP
   const [tags, setTags] = useState<string[]>(currentTags);
   const [newTag, setNewTag] = useState("");
   const [selectedColor, setSelectedColor] = useState(TAG_COLORS[0]);
+  const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
   const handleAddTag = () => {
@@ -45,7 +47,6 @@ export const TagManager = ({ invoiceId, currentTags, onTagsUpdate }: TagManagerP
     if (newTag.trim() && !tags.includes(newTag.trim())) {
       const updatedTags = [...tags, newTag.trim()];
       setTags(updatedTags);
-      onTagsUpdate(updatedTags);
       setNewTag("");
     }
   };
@@ -60,11 +61,19 @@ export const TagManager = ({ invoiceId, currentTags, onTagsUpdate }: TagManagerP
   const handleRemoveTag = (tagToRemove: string) => {
     const updatedTags = tags.filter(tag => tag !== tagToRemove);
     setTags(updatedTags);
-    onTagsUpdate(updatedTags);
+  };
+
+  const handleSave = () => {
+    onTagsUpdate(tags);
+    setOpen(false);
+    toast({
+      title: "Tags updated",
+      description: "Your changes have been saved",
+    });
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="h-6 w-6">
           <Tag className="h-4 w-4" />
@@ -108,6 +117,9 @@ export const TagManager = ({ invoiceId, currentTags, onTagsUpdate }: TagManagerP
             ))}
           </div>
         </div>
+        <DialogFooter className="mt-4">
+          <Button onClick={handleSave}>Save Changes</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

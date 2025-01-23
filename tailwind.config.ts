@@ -33,6 +33,10 @@ export default {
           orange: "#FEA320",
           pink: "#F95FBD",
           yellow: "#F7D115",
+          green: {
+            light: "#F2FCE2",
+            DEFAULT: "#4CAF50",
+          },
         },
         primary: {
           DEFAULT: "#1A89FD",

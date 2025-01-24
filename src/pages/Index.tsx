@@ -59,7 +59,7 @@ const Index = () => {
             <Card className="p-6 animate-fadeIn">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-primary-800">Latest Processed Invoice</h2>
+                  <h2 className="text-lg font-semibold text-primary-800">Your invoice has been processed!</h2>
                   <p className="text-sm text-gray-500">Quick access to your most recent invoice</p>
                 </div>
                 <Link to="/invoices">

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,8 @@ serve(async (req) => {
   try {
     const { fileUrl } = await req.json()
     const pdfcoApiKey = Deno.env.get('PDFCO_API_KEY')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!fileUrl) {
       return new Response(
@@ -30,6 +33,26 @@ serve(async (req) => {
     }
 
     console.log('Starting invoice parsing for file:', fileUrl)
+
+    // Create Supabase client with service role key
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
+
+    // Extract file path from the public URL
+    const filePath = fileUrl.split('/').slice(-1)[0]
+    console.log('File path:', filePath)
+
+    // Get signed URL that will work for external services
+    const { data: { signedUrl }, error: signedUrlError } = await supabase
+      .storage
+      .from('invoice-files')
+      .createSignedUrl(filePath, 60) // URL valid for 60 seconds
+
+    if (signedUrlError) {
+      console.error('Signed URL error:', signedUrlError)
+      throw signedUrlError
+    }
+
+    console.log('Generated signed URL:', signedUrl)
 
     // Define the parsing template
     const template = {
@@ -71,7 +94,7 @@ serve(async (req) => {
 
     // Make the API request with proper JSON stringification
     const requestBody = {
-      url: fileUrl,
+      url: signedUrl,
       template: JSON.stringify(template),
       async: false,
       name: "invoice.pdf"

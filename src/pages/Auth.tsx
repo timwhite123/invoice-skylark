@@ -50,13 +50,11 @@ const Auth = () => {
 
       toast({
         title: "Success!",
-        description: "Your account has been created. You can now sign in.",
+        description: "Your account has been created. You will be redirected shortly.",
       });
       
-      // Automatically switch to sign in tab after successful signup
-      const tabsList = document.querySelector('[role="tablist"]') as HTMLElement;
-      const signinTab = tabsList?.querySelector('[value="signin"]') as HTMLElement;
-      signinTab?.click();
+      // Navigate to home page after successful signup
+      navigate("/");
       
     } catch (error: any) {
       toast({

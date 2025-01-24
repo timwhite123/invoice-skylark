@@ -5,19 +5,38 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ExportMenu } from "@/components/invoices/ExportMenu";
 import { InvoiceUpload } from "@/components/invoices/InvoiceUpload";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const Index = () => {
   const [greeting, setGreeting] = useState("");
-  const [hasProcessedInvoices, setHasProcessedInvoices] = useState(false);
   const userPlan = "free";
+
+  // Fetch latest processed invoice
+  const { data: latestInvoice } = useQuery({
+    queryKey: ['latest-invoice'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  });
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting("Good morning");
     else if (hour < 18) setGreeting("Good afternoon");
     else setGreeting("Good evening");
-
-    setHasProcessedInvoices(true);
   }, []);
 
   return (
@@ -36,12 +55,12 @@ const Index = () => {
           </div>
 
           {/* Export Section - Only shown after processing */}
-          {hasProcessedInvoices && (
+          {latestInvoice && (
             <Card className="p-6 animate-fadeIn">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-primary-800">Quick Export</h2>
-                  <p className="text-sm text-gray-500">Export your processed invoices</p>
+                  <h2 className="text-lg font-semibold text-primary-800">Latest Processed Invoice</h2>
+                  <p className="text-sm text-gray-500">Quick access to your most recent invoice</p>
                 </div>
                 <Link to="/invoices">
                   <Button variant="outline" size="sm">
@@ -49,6 +68,27 @@ const Index = () => {
                   </Button>
                 </Link>
               </div>
+
+              {/* Invoice Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-500">Vendor</p>
+                  <p className="font-medium">{latestInvoice.vendor_name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Invoice Number</p>
+                  <p className="font-medium">{latestInvoice.invoice_number || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Total Amount</p>
+                  <p className="font-medium">
+                    {latestInvoice.total_amount
+                      ? `${latestInvoice.currency || '$'}${latestInvoice.total_amount.toFixed(2)}`
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <ExportMenu userPlan={userPlan} onExport={(format) => console.log(`Exporting as ${format}`)} />
                 <p className="text-sm text-gray-500">

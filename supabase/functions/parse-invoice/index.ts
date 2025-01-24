@@ -33,71 +33,59 @@ serve(async (req) => {
 
     // Define the parsing template
     const template = {
-      fields: [
+      "templateName": "Invoice Parser",
+      "templateVersion": 1,
+      "objects": [
         {
-          name: "Vendor",
-          type: "text",
-          regex: "(?:Company|Vendor|From):\\s*([^\\n]+)"
+          "name": "vendor_name",
+          "type": "field",
+          "regex": "(?:Company|Vendor|From):\\s*([^\\n]+)"
         },
         {
-          name: "InvoiceNumber",
-          type: "text",
-          regex: "(?:Invoice|Reference)\\s*(?:#|No\\.?|Number)?\\s*[:.]?\\s*(\\w+[-\\w]*)"
+          "name": "invoice_number",
+          "type": "field",
+          "regex": "(?:Invoice|Reference)\\s*(?:#|No\\.?|Number)?\\s*[:.]?\\s*(\\w+[-\\w]*)"
         },
         {
-          name: "InvoiceDate",
-          type: "date",
-          regex: "(?:Invoice|Date)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
+          "name": "invoice_date",
+          "type": "field",
+          "regex": "(?:Invoice|Date)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
         },
         {
-          name: "DueDate",
-          type: "date",
-          regex: "(?:Due|Payment)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
+          "name": "due_date",
+          "type": "field",
+          "regex": "(?:Due|Payment)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
         },
         {
-          name: "TotalAmount",
-          type: "number",
-          regex: "(?:Total|Amount|Sum)\\s*(?:Due)?\\s*[:.]?\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
+          "name": "total_amount",
+          "type": "field",
+          "regex": "(?:Total|Amount|Sum)\\s*(?:Due)?\\s*[:.]?\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
         },
         {
-          name: "Currency",
-          type: "text",
-          regex: "(USD|EUR|GBP|\\$|€|£)"
-        }
-      ],
-      tables: [
-        {
-          name: "Items",
-          start: "(?:Item|Description|Product)",
-          end: "(?:Total|Sum|Subtotal)",
-          row: "^.+\\s+\\d+(?:[.,]\\d{2})?\\s*$",
-          columns: [
-            {
-              name: "Description",
-              type: "text"
-            },
-            {
-              name: "Amount",
-              type: "number"
-            }
-          ]
+          "name": "currency",
+          "type": "field",
+          "regex": "(USD|EUR|GBP|\\$|€|£)"
         }
       ]
     }
 
     // Make the API request with proper JSON stringification
+    const requestBody = {
+      url: fileUrl,
+      template: JSON.stringify(template),
+      async: false,
+      name: "invoice.pdf"
+    }
+
+    console.log('Sending request to PDF.co:', JSON.stringify(requestBody))
+
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
       headers: {
         'x-api-key': pdfcoApiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        url: fileUrl,
-        template: template,
-        async: false,
-        outputFormat: "json"
-      })
+      body: JSON.stringify(requestBody)
     })
 
     console.log('PDF.co response status:', parseResponse.status)
@@ -120,13 +108,12 @@ serve(async (req) => {
 
     // Transform the parsed data
     const transformedData = {
-      vendor_name: parseResult.fields?.find((f: any) => f.name === 'Vendor')?.value || '',
-      invoice_number: parseResult.fields?.find((f: any) => f.name === 'InvoiceNumber')?.value || '',
-      invoice_date: parseResult.fields?.find((f: any) => f.name === 'InvoiceDate')?.value || null,
-      due_date: parseResult.fields?.find((f: any) => f.name === 'DueDate')?.value || null,
-      total_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'TotalAmount')?.value || '0'),
-      currency: parseResult.fields?.find((f: any) => f.name === 'Currency')?.value || 'USD',
-      items: parseResult.tables?.find((t: any) => t.name === 'Items')?.rows || []
+      vendor_name: parseResult.fields?.find((f: any) => f.name === 'vendor_name')?.value || '',
+      invoice_number: parseResult.fields?.find((f: any) => f.name === 'invoice_number')?.value || '',
+      invoice_date: parseResult.fields?.find((f: any) => f.name === 'invoice_date')?.value || null,
+      due_date: parseResult.fields?.find((f: any) => f.name === 'due_date')?.value || null,
+      total_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'total_amount')?.value || '0'),
+      currency: parseResult.fields?.find((f: any) => f.name === 'currency')?.value || 'USD',
     }
 
     return new Response(

@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,43 +31,8 @@ serve(async (req) => {
 
     console.log('Starting invoice parsing for file:', fileUrl)
 
-    // First, get the parsing profile ID from PDF.co
-    const profileResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser/profiles', {
-      method: 'GET',
-      headers: {
-        'x-api-key': pdfcoApiKey,
-      },
-    })
-
-    if (!profileResponse.ok) {
-      const errorText = await profileResponse.text()
-      console.error('Profile fetch error:', errorText)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch parsing profiles', details: errorText }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    const profiles = await profileResponse.json()
-    console.log('Profiles response:', profiles)
-
-    if (!profiles?.profiles?.length) {
-      return new Response(
-        JSON.stringify({ error: 'No parsing profiles found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    const invoiceProfile = profiles.profiles.find((p: any) => p.name === 'Invoice')
-    if (!invoiceProfile?.id) {
-      return new Response(
-        JSON.stringify({ error: 'Invoice parsing profile not found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    // Parse the document using the profile
-    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
+    // Parse the document directly without using profiles
+    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser/parse', {
       method: 'POST',
       headers: {
         'x-api-key': pdfcoApiKey,
@@ -76,8 +40,60 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         url: fileUrl,
-        profileId: invoiceProfile.id,
-        async: false
+        template: {
+          "fields": [
+            {
+              "name": "Vendor",
+              "type": "text",
+              "regex": "(?:Company|Vendor|From):\\s*([^\\n]+)"
+            },
+            {
+              "name": "InvoiceNumber",
+              "type": "text",
+              "regex": "(?:Invoice|Reference)\\s*(?:#|No\\.?|Number)?\\s*[:.]?\\s*(\\w+[-\\w]*)"
+            },
+            {
+              "name": "InvoiceDate",
+              "type": "date",
+              "regex": "(?:Invoice|Date)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
+            },
+            {
+              "name": "DueDate",
+              "type": "date",
+              "regex": "(?:Due|Payment)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
+            },
+            {
+              "name": "TotalAmount",
+              "type": "number",
+              "regex": "(?:Total|Amount|Sum)\\s*(?:Due)?\\s*[:.]?\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
+            },
+            {
+              "name": "Currency",
+              "type": "text",
+              "regex": "(USD|EUR|GBP|\\$|€|£)"
+            }
+          ],
+          "tables": [
+            {
+              "name": "Items",
+              "start": "(?:Item|Description|Product)",
+              "end": "(?:Total|Sum|Subtotal)",
+              "row": "^.+\\s+\\d+(?:[.,]\\d{2})?\\s*$",
+              "columns": [
+                {
+                  "name": "Description",
+                  "type": "text"
+                },
+                {
+                  "name": "Amount",
+                  "type": "number"
+                }
+              ]
+            }
+          ]
+        },
+        async: false,
+        outputFormat: "json"
       })
     })
 
@@ -119,21 +135,14 @@ serve(async (req) => {
     const parsedData = await resultResponse.json()
     console.log('Parsed data:', parsedData)
 
-    if (!parsedData?.fields) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid parsed data format' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
     // Transform the data with safe fallbacks
     const transformedData = {
-      vendor_name: parsedData.fields.find((f: any) => f.name === 'Vendor')?.value || '',
-      invoice_number: parsedData.fields.find((f: any) => f.name === 'InvoiceNumber')?.value || '',
-      invoice_date: parsedData.fields.find((f: any) => f.name === 'InvoiceDate')?.value || null,
-      due_date: parsedData.fields.find((f: any) => f.name === 'DueDate')?.value || null,
-      total_amount: parseFloat(parsedData.fields.find((f: any) => f.name === 'TotalAmount')?.value || '0'),
-      currency: parsedData.fields.find((f: any) => f.name === 'Currency')?.value || 'USD',
+      vendor_name: parsedData.fields?.find((f: any) => f.name === 'Vendor')?.value || '',
+      invoice_number: parsedData.fields?.find((f: any) => f.name === 'InvoiceNumber')?.value || '',
+      invoice_date: parsedData.fields?.find((f: any) => f.name === 'InvoiceDate')?.value || null,
+      due_date: parsedData.fields?.find((f: any) => f.name === 'DueDate')?.value || null,
+      total_amount: parseFloat(parsedData.fields?.find((f: any) => f.name === 'TotalAmount')?.value || '0'),
+      currency: parsedData.fields?.find((f: any) => f.name === 'Currency')?.value || 'USD',
       items: parsedData.tables?.find((t: any) => t.name === 'Items')?.rows || []
     }
 

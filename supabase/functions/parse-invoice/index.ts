@@ -31,8 +31,62 @@ serve(async (req) => {
 
     console.log('Starting invoice parsing for file:', fileUrl)
 
-    // Parse the document directly without using profiles
-    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser/parse', {
+    // Define the parsing template
+    const template = {
+      fields: [
+        {
+          name: "Vendor",
+          type: "text",
+          regex: "(?:Company|Vendor|From):\\s*([^\\n]+)"
+        },
+        {
+          name: "InvoiceNumber",
+          type: "text",
+          regex: "(?:Invoice|Reference)\\s*(?:#|No\\.?|Number)?\\s*[:.]?\\s*(\\w+[-\\w]*)"
+        },
+        {
+          name: "InvoiceDate",
+          type: "date",
+          regex: "(?:Invoice|Date)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
+        },
+        {
+          name: "DueDate",
+          type: "date",
+          regex: "(?:Due|Payment)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
+        },
+        {
+          name: "TotalAmount",
+          type: "number",
+          regex: "(?:Total|Amount|Sum)\\s*(?:Due)?\\s*[:.]?\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
+        },
+        {
+          name: "Currency",
+          type: "text",
+          regex: "(USD|EUR|GBP|\\$|€|£)"
+        }
+      ],
+      tables: [
+        {
+          name: "Items",
+          start: "(?:Item|Description|Product)",
+          end: "(?:Total|Sum|Subtotal)",
+          row: "^.+\\s+\\d+(?:[.,]\\d{2})?\\s*$",
+          columns: [
+            {
+              name: "Description",
+              type: "text"
+            },
+            {
+              name: "Amount",
+              type: "number"
+            }
+          ]
+        }
+      ]
+    }
+
+    // Make the API request with proper JSON stringification
+    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
       headers: {
         'x-api-key': pdfcoApiKey,
@@ -40,110 +94,39 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         url: fileUrl,
-        template: {
-          "fields": [
-            {
-              "name": "Vendor",
-              "type": "text",
-              "regex": "(?:Company|Vendor|From):\\s*([^\\n]+)"
-            },
-            {
-              "name": "InvoiceNumber",
-              "type": "text",
-              "regex": "(?:Invoice|Reference)\\s*(?:#|No\\.?|Number)?\\s*[:.]?\\s*(\\w+[-\\w]*)"
-            },
-            {
-              "name": "InvoiceDate",
-              "type": "date",
-              "regex": "(?:Invoice|Date)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
-            },
-            {
-              "name": "DueDate",
-              "type": "date",
-              "regex": "(?:Due|Payment)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
-            },
-            {
-              "name": "TotalAmount",
-              "type": "number",
-              "regex": "(?:Total|Amount|Sum)\\s*(?:Due)?\\s*[:.]?\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
-            },
-            {
-              "name": "Currency",
-              "type": "text",
-              "regex": "(USD|EUR|GBP|\\$|€|£)"
-            }
-          ],
-          "tables": [
-            {
-              "name": "Items",
-              "start": "(?:Item|Description|Product)",
-              "end": "(?:Total|Sum|Subtotal)",
-              "row": "^.+\\s+\\d+(?:[.,]\\d{2})?\\s*$",
-              "columns": [
-                {
-                  "name": "Description",
-                  "type": "text"
-                },
-                {
-                  "name": "Amount",
-                  "type": "number"
-                }
-              ]
-            }
-          ]
-        },
+        template: template,
         async: false,
         outputFormat: "json"
       })
     })
 
-    if (!parseResponse.ok) {
-      const errorText = await parseResponse.text()
-      console.error('Parse error:', errorText)
-      return new Response(
-        JSON.stringify({ error: 'Failed to parse document', details: errorText }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
+    console.log('PDF.co response status:', parseResponse.status)
     const parseResult = await parseResponse.json()
-    console.log('Parse result:', parseResult)
+    console.log('PDF.co parse result:', parseResult)
 
-    if (!parseResult?.success) {
+    if (!parseResponse.ok) {
+      console.error('Parse error:', parseResult)
       return new Response(
-        JSON.stringify({ error: parseResult?.message || 'Failed to parse invoice' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        JSON.stringify({ 
+          error: 'Failed to parse document', 
+          details: parseResult 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: parseResponse.status 
+        }
       )
     }
 
-    // Get the parsed data
-    const resultResponse = await fetch(parseResult.url, {
-      headers: {
-        'x-api-key': pdfcoApiKey,
-      },
-    })
-
-    if (!resultResponse.ok) {
-      const errorText = await resultResponse.text()
-      console.error('Result fetch error:', errorText)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch parse results', details: errorText }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
-    }
-
-    const parsedData = await resultResponse.json()
-    console.log('Parsed data:', parsedData)
-
-    // Transform the data with safe fallbacks
+    // Transform the parsed data
     const transformedData = {
-      vendor_name: parsedData.fields?.find((f: any) => f.name === 'Vendor')?.value || '',
-      invoice_number: parsedData.fields?.find((f: any) => f.name === 'InvoiceNumber')?.value || '',
-      invoice_date: parsedData.fields?.find((f: any) => f.name === 'InvoiceDate')?.value || null,
-      due_date: parsedData.fields?.find((f: any) => f.name === 'DueDate')?.value || null,
-      total_amount: parseFloat(parsedData.fields?.find((f: any) => f.name === 'TotalAmount')?.value || '0'),
-      currency: parsedData.fields?.find((f: any) => f.name === 'Currency')?.value || 'USD',
-      items: parsedData.tables?.find((t: any) => t.name === 'Items')?.rows || []
+      vendor_name: parseResult.fields?.find((f: any) => f.name === 'Vendor')?.value || '',
+      invoice_number: parseResult.fields?.find((f: any) => f.name === 'InvoiceNumber')?.value || '',
+      invoice_date: parseResult.fields?.find((f: any) => f.name === 'InvoiceDate')?.value || null,
+      due_date: parseResult.fields?.find((f: any) => f.name === 'DueDate')?.value || null,
+      total_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'TotalAmount')?.value || '0'),
+      currency: parseResult.fields?.find((f: any) => f.name === 'Currency')?.value || 'USD',
+      items: parseResult.tables?.find((t: any) => t.name === 'Items')?.rows || []
     }
 
     return new Response(

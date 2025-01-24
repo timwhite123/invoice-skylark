@@ -17,16 +17,22 @@ serve(async (req) => {
     const pdfcoApiKey = Deno.env.get('PDFCO_API_KEY')
 
     if (!fileUrl) {
-      throw new Error('No file URL provided')
+      return new Response(
+        JSON.stringify({ error: 'No file URL provided' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
     }
 
     if (!pdfcoApiKey) {
-      throw new Error('PDF.co API key not configured')
+      return new Response(
+        JSON.stringify({ error: 'PDF.co API key not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     console.log('Starting invoice parsing for file:', fileUrl)
 
-    // First, we need to get the parsing profile ID from PDF.co
+    // First, get the parsing profile ID from PDF.co
     const profileResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser/profiles', {
       method: 'GET',
       headers: {
@@ -35,22 +41,33 @@ serve(async (req) => {
     })
 
     if (!profileResponse.ok) {
-      throw new Error(`Failed to fetch profiles: ${await profileResponse.text()}`)
+      const errorText = await profileResponse.text()
+      console.error('Profile fetch error:', errorText)
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch parsing profiles', details: errorText }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     const profiles = await profileResponse.json()
     console.log('Profiles response:', profiles)
 
-    if (!profiles?.profiles) {
-      throw new Error('Invalid profiles response from PDF.co')
+    if (!profiles?.profiles?.length) {
+      return new Response(
+        JSON.stringify({ error: 'No parsing profiles found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     const invoiceProfile = profiles.profiles.find((p: any) => p.name === 'Invoice')
     if (!invoiceProfile?.id) {
-      throw new Error('Invoice parsing profile not found')
+      return new Response(
+        JSON.stringify({ error: 'Invoice parsing profile not found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
-    // Now we can parse the document using the profile
+    // Parse the document using the profile
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
       headers: {
@@ -65,14 +82,22 @@ serve(async (req) => {
     })
 
     if (!parseResponse.ok) {
-      throw new Error(`Failed to parse document: ${await parseResponse.text()}`)
+      const errorText = await parseResponse.text()
+      console.error('Parse error:', errorText)
+      return new Response(
+        JSON.stringify({ error: 'Failed to parse document', details: errorText }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     const parseResult = await parseResponse.json()
     console.log('Parse result:', parseResult)
 
     if (!parseResult?.success) {
-      throw new Error(parseResult?.message || 'Failed to parse invoice')
+      return new Response(
+        JSON.stringify({ error: parseResult?.message || 'Failed to parse invoice' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     // Get the parsed data
@@ -83,17 +108,25 @@ serve(async (req) => {
     })
 
     if (!resultResponse.ok) {
-      throw new Error(`Failed to fetch parse results: ${await resultResponse.text()}`)
+      const errorText = await resultResponse.text()
+      console.error('Result fetch error:', errorText)
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch parse results', details: errorText }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     const parsedData = await resultResponse.json()
     console.log('Parsed data:', parsedData)
 
     if (!parsedData?.fields) {
-      throw new Error('Invalid parsed data format')
+      return new Response(
+        JSON.stringify({ error: 'Invalid parsed data format' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
-    // Transform the data into our desired format with safe fallbacks
+    // Transform the data with safe fallbacks
     const transformedData = {
       vendor_name: parsedData.fields.find((f: any) => f.name === 'Vendor')?.value || '',
       invoice_number: parsedData.fields.find((f: any) => f.name === 'InvoiceNumber')?.value || '',
@@ -106,25 +139,17 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(transformedData),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
     console.error('Error parsing invoice:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        }, 
-        status: 500 
-      }
+      JSON.stringify({ 
+        error: 'An unexpected error occurred while parsing the invoice',
+        details: error.message 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })

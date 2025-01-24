@@ -20,6 +20,10 @@ serve(async (req) => {
       throw new Error('No file URL provided')
     }
 
+    if (!pdfcoApiKey) {
+      throw new Error('PDF.co API key not configured')
+    }
+
     console.log('Starting invoice parsing for file:', fileUrl)
 
     // First, we need to get the parsing profile ID from PDF.co
@@ -30,10 +34,19 @@ serve(async (req) => {
       },
     })
 
-    const profiles = await profileResponse.json()
-    const invoiceProfile = profiles.profiles.find((p: any) => p.name === 'Invoice')
+    if (!profileResponse.ok) {
+      throw new Error(`Failed to fetch profiles: ${await profileResponse.text()}`)
+    }
 
-    if (!invoiceProfile) {
+    const profiles = await profileResponse.json()
+    console.log('Profiles response:', profiles)
+
+    if (!profiles?.profiles) {
+      throw new Error('Invalid profiles response from PDF.co')
+    }
+
+    const invoiceProfile = profiles.profiles.find((p: any) => p.name === 'Invoice')
+    if (!invoiceProfile?.id) {
       throw new Error('Invoice parsing profile not found')
     }
 
@@ -51,11 +64,15 @@ serve(async (req) => {
       })
     })
 
+    if (!parseResponse.ok) {
+      throw new Error(`Failed to parse document: ${await parseResponse.text()}`)
+    }
+
     const parseResult = await parseResponse.json()
     console.log('Parse result:', parseResult)
 
-    if (!parseResult.success) {
-      throw new Error(parseResult.message || 'Failed to parse invoice')
+    if (!parseResult?.success) {
+      throw new Error(parseResult?.message || 'Failed to parse invoice')
     }
 
     // Get the parsed data
@@ -65,10 +82,18 @@ serve(async (req) => {
       },
     })
 
+    if (!resultResponse.ok) {
+      throw new Error(`Failed to fetch parse results: ${await resultResponse.text()}`)
+    }
+
     const parsedData = await resultResponse.json()
     console.log('Parsed data:', parsedData)
 
-    // Transform the data into our desired format
+    if (!parsedData?.fields) {
+      throw new Error('Invalid parsed data format')
+    }
+
+    // Transform the data into our desired format with safe fallbacks
     const transformedData = {
       vendor_name: parsedData.fields.find((f: any) => f.name === 'Vendor')?.value || '',
       invoice_number: parsedData.fields.find((f: any) => f.name === 'InvoiceNumber')?.value || '',
@@ -76,19 +101,30 @@ serve(async (req) => {
       due_date: parsedData.fields.find((f: any) => f.name === 'DueDate')?.value || null,
       total_amount: parseFloat(parsedData.fields.find((f: any) => f.name === 'TotalAmount')?.value || '0'),
       currency: parsedData.fields.find((f: any) => f.name === 'Currency')?.value || 'USD',
-      items: parsedData.tables.find((t: any) => t.name === 'Items')?.rows || []
+      items: parsedData.tables?.find((t: any) => t.name === 'Items')?.rows || []
     }
 
     return new Response(
       JSON.stringify(transformedData),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     )
 
   } catch (error) {
     console.error('Error parsing invoice:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }, 
+        status: 500 
+      }
     )
   }
 })

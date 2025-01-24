@@ -27,7 +27,11 @@ export const InvoiceUpload = () => {
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+
+      console.log("Current user:", user); // Debug log
 
       // Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
@@ -51,11 +55,13 @@ export const InvoiceUpload = () => {
 
       if (parseError) throw parseError;
 
-      // Save to database
+      console.log("Parse data:", parseData); // Debug log
+
+      // Save to database with explicit user_id
       const { error: dbError } = await supabase
         .from('invoices')
         .insert({
-          user_id: user.id,
+          user_id: user.id, // Explicitly set the user_id
           vendor_name: parseData.vendor_name,
           invoice_number: parseData.invoice_number,
           invoice_date: parseData.invoice_date,
@@ -63,9 +69,13 @@ export const InvoiceUpload = () => {
           total_amount: parseData.total_amount,
           currency: parseData.currency,
           original_file_url: publicUrl,
+          status: 'pending', // Add default status
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error("Database error:", dbError); // Debug log
+        throw dbError;
+      }
 
       // Show success message
       toast({

@@ -12,8 +12,8 @@ const Index = () => {
   const [greeting, setGreeting] = useState("");
   const userPlan = "free";
 
-  // Fetch latest processed invoice
-  const { data: latestInvoice } = useQuery({
+  // Fetch latest processed invoice with error handling
+  const { data: latestInvoice, isError, error } = useQuery({
     queryKey: ['latest-invoice'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +27,11 @@ const Index = () => {
         .limit(1)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching latest invoice:", error);
+        throw error;
+      }
+      
       return data;
     }
   });
@@ -83,7 +87,7 @@ const Index = () => {
                   <p className="text-sm text-gray-500">Total Amount</p>
                   <p className="font-medium">
                     {latestInvoice.total_amount
-                      ? `${latestInvoice.currency || '$'}${latestInvoice.total_amount.toFixed(2)}`
+                      ? `${latestInvoice.currency || '$'}${Number(latestInvoice.total_amount).toFixed(2)}`
                       : 'N/A'}
                   </p>
                 </div>
@@ -92,8 +96,8 @@ const Index = () => {
               <div className="flex items-center justify-between">
                 <ExportMenu userPlan={userPlan} onExport={(format) => console.log(`Exporting as ${format}`)} />
                 <p className="text-sm text-gray-500">
-                  Need more export options? 
-                  <Link to="/pricing" className="text-primary ml-1 hover:underline">
+                  Need more export options?{' '}
+                  <Link to="/pricing" className="text-primary hover:underline">
                     Upgrade your plan
                   </Link>
                 </p>

@@ -145,6 +145,7 @@ export const InvoiceUpload = () => {
           fileUrl={fileUrl} 
           extractedData={extractedData}
           onCancel={handleCancel}
+          userPlan="free" // This should be dynamically set based on the user's actual plan
         />
       )}
     </div>

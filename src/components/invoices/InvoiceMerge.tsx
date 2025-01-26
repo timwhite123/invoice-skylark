@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Lock, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 
@@ -51,7 +51,11 @@ interface MergedInvoiceData {
   summary: MergedInvoiceSummary;
 }
 
-export const InvoiceMerge = () => {
+interface InvoiceMergeProps {
+  userPlan?: 'free' | 'pro' | 'enterprise';
+}
+
+export const InvoiceMerge = ({ userPlan = 'free' }: InvoiceMergeProps) => {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isMerging, setIsMerging] = useState(false);
   const [mergedData, setMergedData] = useState<MergedInvoiceData | null>(null);
@@ -102,7 +106,6 @@ export const InvoiceMerge = () => {
 
       setMergedData(mergedData);
 
-      // Save the merge history
       const { error: historyError } = await supabase
         .from('export_history')
         .insert({
@@ -132,6 +135,30 @@ export const InvoiceMerge = () => {
       setIsMerging(false);
     }
   };
+
+  if (userPlan === 'free') {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 space-y-6 text-center border-2 border-dashed rounded-lg bg-background/50">
+        <div className="p-4 rounded-full bg-primary/10">
+          <Lock className="h-12 w-12 text-primary" />
+        </div>
+        <div className="space-y-2 max-w-sm">
+          <h3 className="font-semibold text-xl">Upgrade to Merge Invoices</h3>
+          <p className="text-sm text-muted-foreground">
+            The invoice merge feature is available on our Pro and Enterprise plans. Upgrade now to combine multiple invoices and streamline your workflow.
+          </p>
+        </div>
+        <div className="space-x-4">
+          <Button onClick={() => navigate("/pricing")} variant="default">
+            View Pricing
+          </Button>
+          <Button onClick={() => navigate("/")} variant="outline">
+            Back to Upload
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Save, Trash } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 interface FieldMapping {
   id: string;
@@ -20,6 +21,7 @@ export const FieldMappingManager = () => {
   const [newFieldName, setNewFieldName] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: fieldMappings, isLoading } = useQuery({
     queryKey: ['field-mappings'],
@@ -36,6 +38,8 @@ export const FieldMappingManager = () => {
 
   const addMutation = useMutation({
     mutationFn: async (fieldName: string) => {
+      if (!user) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('field_mappings')
         .insert([
@@ -43,6 +47,7 @@ export const FieldMappingManager = () => {
             field_name: fieldName,
             is_required: false,
             custom_rules: {},
+            user_id: user.id
           },
         ])
         .select()

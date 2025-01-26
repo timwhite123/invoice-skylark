@@ -3,19 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { format } from "date-fns";
-import { Loader2, Lock, Upload, Crown, ArrowRight } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Card } from "@/components/ui/card";
+import { FreePlanEmptyState } from "./FreePlanEmptyState";
+import { MergeDataSummary } from "./MergeDataSummary";
+import { MergeTable } from "./MergeTable";
 
 interface MergedInvoiceSummary {
   total_invoices: number;
@@ -137,69 +129,7 @@ export const InvoiceMerge = ({ userPlan = 'free' }: InvoiceMergeProps) => {
   };
 
   if (userPlan === 'free') {
-    return (
-      <div className="relative overflow-hidden">
-        <div className="flex flex-col items-center justify-center p-16 space-y-8 text-center border-2 border-dashed rounded-lg bg-gradient-to-b from-background to-background/50">
-          {/* Premium Badge */}
-          <div className="absolute top-4 right-4">
-            <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
-              <Crown className="h-4 w-4" />
-              Premium Feature
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="p-6 rounded-full bg-primary/10">
-            <Lock className="h-16 w-16 text-primary" />
-          </div>
-          
-          <div className="max-w-md space-y-4">
-            <h2 className="text-2xl font-bold tracking-tight">
-              Unlock Invoice Merging
-            </h2>
-            <p className="text-muted-foreground">
-              Combine multiple invoices into a single document, streamline your workflow, 
-              and save time with our powerful merging feature. Available on Pro and Enterprise plans.
-            </p>
-          </div>
-
-          {/* Feature List */}
-          <div className="grid gap-4 text-left text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-              Merge unlimited invoices into a single document
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-              Export merged data in multiple formats
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-              Smart data consolidation and validation
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button 
-              onClick={() => navigate("/pricing")} 
-              size="lg"
-              className="gap-2"
-            >
-              Upgrade Now
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button 
-              onClick={() => navigate("/")} 
-              variant="outline"
-              size="lg"
-            >
-              Back to Upload
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <FreePlanEmptyState />;
   }
 
   if (isLoading) {
@@ -246,87 +176,14 @@ export const InvoiceMerge = ({ userPlan = 'free' }: InvoiceMergeProps) => {
         </Button>
       </div>
 
-      {mergedData && (
-        <Card className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Merged Data Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-sm text-gray-500">Total Invoices</p>
-              <p className="font-medium">{mergedData.summary.total_invoices}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Amount</p>
-              <p className="font-medium">
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: mergedData.summary.currency
-                }).format(mergedData.summary.total_amount)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Date Range</p>
-              <p className="font-medium">
-                {format(new Date(mergedData.summary.date_range.earliest), 'MMM d, yyyy')} - {format(new Date(mergedData.summary.date_range.latest), 'MMM d, yyyy')}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Tax</p>
-              <p className="font-medium">
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: mergedData.summary.currency
-                }).format(mergedData.summary.total_tax)}
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
+      {mergedData && <MergeDataSummary summary={mergedData.summary} />}
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">Select</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Invoice Number</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invoices?.map((invoice) => (
-              <TableRow key={invoice.id}>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedInvoices.includes(invoice.id)}
-                    onCheckedChange={() => handleToggleSelect(invoice.id)}
-                    disabled={isMerging}
-                  />
-                </TableCell>
-                <TableCell>{invoice.vendor_name}</TableCell>
-                <TableCell>{invoice.invoice_number}</TableCell>
-                <TableCell>
-                  {invoice.invoice_date 
-                    ? format(new Date(invoice.invoice_date), 'MMM d, yyyy')
-                    : '-'}
-                </TableCell>
-                <TableCell>
-                  {invoice.total_amount
-                    ? new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: invoice.currency || 'USD'
-                      }).format(invoice.total_amount)
-                    : '-'}
-                </TableCell>
-                <TableCell>
-                  <span className="capitalize">{invoice.status}</span>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <MergeTable 
+        invoices={invoices}
+        selectedInvoices={selectedInvoices}
+        onToggleSelect={handleToggleSelect}
+        isMerging={isMerging}
+      />
     </div>
   );
 };

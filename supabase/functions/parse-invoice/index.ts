@@ -7,7 +7,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -18,30 +17,17 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-    if (!fileUrl) {
+    if (!fileUrl || !pdfcoApiKey) {
       return new Response(
-        JSON.stringify({ error: 'No file URL provided' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      )
-    }
-
-    if (!pdfcoApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'PDF.co API key not configured' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        JSON.stringify({ error: !fileUrl ? 'No file URL provided' : 'PDF.co API key not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: !fileUrl ? 400 : 500 }
       )
     }
 
     console.log('Starting invoice parsing for file:', fileUrl)
-
-    // Create Supabase client with service role key
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
-
-    // Extract file path from the public URL
     const filePath = fileUrl.split('/').slice(-1)[0]
-    console.log('File path:', filePath)
-
-    // Get signed URL that will work for external services
+    
     const { data: { signedUrl }, error: signedUrlError } = await supabase
       .storage
       .from('invoice-files')
@@ -54,87 +40,109 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
 
-    // Enhanced parsing template with improved regex patterns
     const template = {
       "templateName": "Enhanced Invoice Parser",
-      "templateVersion": 2,
+      "templateVersion": 3,
       "objects": [
         {
           "name": "vendor_name",
           "type": "field",
           "regex": "(?:Company|Vendor|From|Business|Supplier|Bill\\s*(?:To|From)|Billed\\s*(?:To|From))\\s*[:.]?\\s*([^\\n\\r]{2,50})",
-          "options": {
-            "multiline": true,
-            "caseInsensitive": true
-          }
+          "options": { "multiline": true, "caseInsensitive": true }
         },
         {
           "name": "invoice_number",
           "type": "field",
           "regex": "(?:Invoice|Reference|Bill|Document|Order)\\s*(?:#|No\\.?|Number|ID)?\\s*[:.]?\\s*(\\w+[-\\w]*)",
-          "options": {
-            "multiline": true,
-            "caseInsensitive": true
-          }
+          "options": { "multiline": true, "caseInsensitive": true }
         },
         {
           "name": "invoice_date",
           "type": "field",
           "regex": "(?:Invoice|Bill|Order|Document)?\\s*(?:Date)\\s*[:.]?\\s*(\\d{1,2}[-/.\\s]\\d{1,2}[-/.\\s]\\d{2,4}|\\d{4}[-/.\\s]\\d{1,2}[-/.\\s]\\d{1,2})",
-          "options": {
-            "multiline": true,
-            "caseInsensitive": true
-          }
+          "options": { "multiline": true, "caseInsensitive": true }
         },
         {
           "name": "due_date",
           "type": "field",
           "regex": "(?:Due|Payment|Pay\\s*By|Expires?)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/.\\s]\\d{1,2}[-/.\\s]\\d{2,4}|\\d{4}[-/.\\s]\\d{1,2}[-/.\\s]\\d{1,2})",
-          "options": {
-            "multiline": true,
-            "caseInsensitive": true
-          }
+          "options": { "multiline": true, "caseInsensitive": true }
         },
         {
           "name": "total_amount",
           "type": "field",
           "regex": "(?:Total|Amount|Sum|Balance|Due|Payable)\\s*(?:Due|Amount|Payable)?\\s*[:.]?\\s*(?:USD|\\$|€|£)?\\s*(\\d+(?:[.,]\\d{2})?)",
-          "options": {
-            "multiline": true,
-            "caseInsensitive": true
-          }
+          "options": { "multiline": true, "caseInsensitive": true }
         },
         {
           "name": "currency",
           "type": "field",
           "regex": "(USD|EUR|GBP|\\$|€|£)",
-          "options": {
-            "multiline": true,
-            "caseInsensitive": true
-          }
+          "options": { "multiline": true, "caseInsensitive": true }
         },
         {
           "name": "tax_amount",
           "type": "field",
           "regex": "(?:Tax|VAT|GST)\\s*(?:Amount)?\\s*[:.]?\\s*(?:USD|\\$|€|£)?\\s*(\\d+(?:[.,]\\d{2})?)",
-          "options": {
-            "multiline": true,
-            "caseInsensitive": true
-          }
+          "options": { "multiline": true, "caseInsensitive": true }
         },
         {
           "name": "subtotal",
           "type": "field",
           "regex": "(?:Subtotal|Net\\s*Amount|Amount\\s*Before\\s*Tax)\\s*[:.]?\\s*(?:USD|\\$|€|£)?\\s*(\\d+(?:[.,]\\d{2})?)",
-          "options": {
-            "multiline": true,
-            "caseInsensitive": true
-          }
+          "options": { "multiline": true, "caseInsensitive": true }
+        },
+        {
+          "name": "payment_terms",
+          "type": "field",
+          "regex": "(?:Payment\\s*Terms|Terms|Net)\\s*[:.]?\\s*([^\\n\\r]{2,50})",
+          "options": { "multiline": true, "caseInsensitive": true }
+        },
+        {
+          "name": "purchase_order_number",
+          "type": "field",
+          "regex": "(?:PO|Purchase\\s*Order|Order)\\s*(?:#|No\\.?|Number)?\\s*[:.]?\\s*(\\w+[-\\w]*)",
+          "options": { "multiline": true, "caseInsensitive": true }
+        },
+        {
+          "name": "billing_address",
+          "type": "field",
+          "regex": "(?:Bill(?:ing)?\\s*(?:To|Address)|Invoice\\s*Address)\\s*[:.]?\\s*([^\\n\\r]{2,200})",
+          "options": { "multiline": true, "caseInsensitive": true }
+        },
+        {
+          "name": "shipping_address",
+          "type": "field",
+          "regex": "(?:Ship(?:ping)?\\s*(?:To|Address)|Deliver\\s*To)\\s*[:.]?\\s*([^\\n\\r]{2,200})",
+          "options": { "multiline": true, "caseInsensitive": true }
+        },
+        {
+          "name": "payment_method",
+          "type": "field",
+          "regex": "(?:Payment\\s*Method|Pay\\s*(?:By|Via|Using))\\s*[:.]?\\s*([^\\n\\r]{2,50})",
+          "options": { "multiline": true, "caseInsensitive": true }
+        },
+        {
+          "name": "discount_amount",
+          "type": "field",
+          "regex": "(?:Discount|Reduction)\\s*(?:Amount)?\\s*[:.]?\\s*(?:USD|\\$|€|£)?\\s*(\\d+(?:[.,]\\d{2})?)",
+          "options": { "multiline": true, "caseInsensitive": true }
+        },
+        {
+          "name": "additional_fees",
+          "type": "field",
+          "regex": "(?:Additional\\s*(?:Fees|Charges)|Surcharge|Extra\\s*Charges)\\s*[:.]?\\s*(?:USD|\\$|€|£)?\\s*(\\d+(?:[.,]\\d{2})?)",
+          "options": { "multiline": true, "caseInsensitive": true }
+        },
+        {
+          "name": "notes",
+          "type": "field",
+          "regex": "(?:Notes|Comments|Remarks|Additional\\s*Information)\\s*[:.]?\\s*([^\\n\\r]{2,500})",
+          "options": { "multiline": true, "caseInsensitive": true }
         }
       ]
     }
 
-    // Make the API request with proper JSON stringification
     const requestBody = {
       url: signedUrl,
       template: JSON.stringify(template),
@@ -160,18 +168,11 @@ serve(async (req) => {
     if (!parseResponse.ok) {
       console.error('Parse error:', parseResult)
       return new Response(
-        JSON.stringify({ 
-          error: 'Failed to parse document', 
-          details: parseResult 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: parseResponse.status 
-        }
+        JSON.stringify({ error: 'Failed to parse document', details: parseResult }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: parseResponse.status }
       )
     }
 
-    // Transform the parsed data with improved field handling
     const transformedData = {
       vendor_name: parseResult.fields?.find((f: any) => f.name === 'vendor_name')?.value?.trim() || '',
       invoice_number: parseResult.fields?.find((f: any) => f.name === 'invoice_number')?.value?.trim() || '',
@@ -181,6 +182,14 @@ serve(async (req) => {
       currency: parseResult.fields?.find((f: any) => f.name === 'currency')?.value?.trim() || 'USD',
       tax_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'tax_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
       subtotal: parseFloat(parseResult.fields?.find((f: any) => f.name === 'subtotal')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      payment_terms: parseResult.fields?.find((f: any) => f.name === 'payment_terms')?.value?.trim() || '',
+      purchase_order_number: parseResult.fields?.find((f: any) => f.name === 'purchase_order_number')?.value?.trim() || '',
+      billing_address: parseResult.fields?.find((f: any) => f.name === 'billing_address')?.value?.trim() || '',
+      shipping_address: parseResult.fields?.find((f: any) => f.name === 'shipping_address')?.value?.trim() || '',
+      payment_method: parseResult.fields?.find((f: any) => f.name === 'payment_method')?.value?.trim() || '',
+      discount_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'discount_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      additional_fees: parseFloat(parseResult.fields?.find((f: any) => f.name === 'additional_fees')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      notes: parseResult.fields?.find((f: any) => f.name === 'notes')?.value?.trim() || '',
     }
 
     return new Response(

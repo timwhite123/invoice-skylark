@@ -51,6 +51,50 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_contacts: {
+        Row: {
+          address: string | null
+          contact_type: string
+          created_at: string | null
+          email: string | null
+          id: string
+          invoice_id: string | null
+          name: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_type: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          invoice_id?: string | null
+          name?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_type?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          invoice_id?: string | null
+          name?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_contacts_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           created_at: string | null
@@ -91,42 +135,72 @@ export type Database = {
       }
       invoices: {
         Row: {
+          additional_fees: number | null
+          billing_address: string | null
           created_at: string | null
           currency: string | null
+          discount_amount: number | null
           due_date: string | null
           id: string
           invoice_date: string | null
           invoice_number: string | null
+          notes: string | null
           original_file_url: string | null
+          payment_method: string | null
+          payment_terms: string | null
+          purchase_order_number: string | null
+          shipping_address: string | null
           status: string | null
+          subtotal: number | null
+          tax_amount: number | null
           total_amount: number | null
           updated_at: string | null
           user_id: string
           vendor_name: string | null
         }
         Insert: {
+          additional_fees?: number | null
+          billing_address?: string | null
           created_at?: string | null
           currency?: string | null
+          discount_amount?: number | null
           due_date?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number?: string | null
+          notes?: string | null
           original_file_url?: string | null
+          payment_method?: string | null
+          payment_terms?: string | null
+          purchase_order_number?: string | null
+          shipping_address?: string | null
           status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string | null
           user_id: string
           vendor_name?: string | null
         }
         Update: {
+          additional_fees?: number | null
+          billing_address?: string | null
           created_at?: string | null
           currency?: string | null
+          discount_amount?: number | null
           due_date?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number?: string | null
+          notes?: string | null
           original_file_url?: string | null
+          payment_method?: string | null
+          payment_terms?: string | null
+          purchase_order_number?: string | null
+          shipping_address?: string | null
           status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string | null
           user_id?: string

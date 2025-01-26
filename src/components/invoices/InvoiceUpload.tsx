@@ -33,13 +33,9 @@ export const InvoiceUpload = () => {
 
     setIsUploading(true);
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
+      if (!user) throw new Error("Not authenticated");
 
-      // Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -48,14 +44,12 @@ export const InvoiceUpload = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('invoice-files')
         .getPublicUrl(fileName);
 
       setFileUrl(publicUrl);
 
-      // Send to parse-invoice function
       const { data: parseData, error: parseError } = await supabase.functions
         .invoke('parse-invoice', {
           body: { fileUrl: publicUrl },
@@ -66,7 +60,6 @@ export const InvoiceUpload = () => {
       console.log('Parsed data:', parseData);
       setExtractedData(parseData);
 
-      // Save to database with explicit user_id
       const { error: dbError } = await supabase
         .from('invoices')
         .insert({
@@ -79,20 +72,25 @@ export const InvoiceUpload = () => {
           currency: parseData.currency,
           original_file_url: publicUrl,
           status: 'pending',
+          payment_terms: parseData.payment_terms,
+          purchase_order_number: parseData.purchase_order_number,
+          billing_address: parseData.billing_address,
+          shipping_address: parseData.shipping_address,
+          payment_method: parseData.payment_method,
+          discount_amount: parseData.discount_amount,
+          additional_fees: parseData.additional_fees,
+          tax_amount: parseData.tax_amount,
+          subtotal: parseData.subtotal,
+          notes: parseData.notes,
         });
 
-      if (dbError) {
-        console.error("Database error:", dbError);
-        throw dbError;
-      }
+      if (dbError) throw dbError;
 
-      // Show success message
       toast({
         title: "Invoice uploaded",
         description: "Your invoice has been processed successfully",
       });
 
-      // Refresh both invoices list and latest invoice
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['latest-invoice'] });
 
@@ -145,7 +143,7 @@ export const InvoiceUpload = () => {
           fileUrl={fileUrl} 
           extractedData={extractedData}
           onCancel={handleCancel}
-          userPlan="free" // This should be dynamically set based on the user's actual plan
+          userPlan="free"
         />
       )}
     </div>

@@ -24,12 +24,73 @@ export const FieldMappingSuggestions = ({
 }: FieldMappingSuggestionsProps) => {
   const [mappings, setMappings] = useState<Record<string, string>>(() => {
     const initialMappings: Record<string, string> = {};
-    Object.keys(extractedData).forEach(key => {
-      if (key.includes('vendor')) initialMappings[key] = 'vendor_name';
-      else if (key.includes('amount') || key.includes('total')) initialMappings[key] = 'total_amount';
-      else if (key.includes('date')) initialMappings[key] = 'invoice_date';
-      else if (key.includes('number')) initialMappings[key] = 'invoice_number';
-      else initialMappings[key] = 'unmapped';
+    Object.entries(extractedData).forEach(([key, value]) => {
+      // Convert key to lowercase for consistent matching
+      const keyLower = key.toLowerCase();
+      const valueStr = String(value).toLowerCase();
+
+      // Vendor/Company related fields
+      if (keyLower.match(/vendor|company|supplier|business|from|seller/)) {
+        initialMappings[key] = 'vendor_name';
+      }
+      // Invoice number/reference fields
+      else if (keyLower.match(/invoice.*num|ref|reference|document.*id|inv.*no/)) {
+        initialMappings[key] = 'invoice_number';
+      }
+      // Date related fields
+      else if (keyLower.match(/due.*date|payment.*date|deadline/)) {
+        initialMappings[key] = 'due_date';
+      }
+      else if (keyLower.match(/date|issued|created/)) {
+        initialMappings[key] = 'invoice_date';
+      }
+      // Amount related fields
+      else if (keyLower.match(/tax|vat|gst/)) {
+        initialMappings[key] = 'tax_amount';
+      }
+      else if (keyLower.match(/discount|reduction|deduction/)) {
+        initialMappings[key] = 'discount_amount';
+      }
+      else if (keyLower.match(/subtotal|net.*amount|amount.*before.*tax/)) {
+        initialMappings[key] = 'subtotal';
+      }
+      else if (keyLower.match(/total|amount|sum|balance|due/)) {
+        initialMappings[key] = 'total_amount';
+      }
+      // Currency detection
+      else if (keyLower.match(/currency|cur|money/)) {
+        initialMappings[key] = 'currency';
+      }
+      // Payment related fields
+      else if (keyLower.match(/payment.*method|pay.*via|pay.*using/)) {
+        initialMappings[key] = 'payment_method';
+      }
+      else if (keyLower.match(/payment.*terms|terms|net/)) {
+        initialMappings[key] = 'payment_terms';
+      }
+      // Purchase order
+      else if (keyLower.match(/po|purchase.*order|order.*num/)) {
+        initialMappings[key] = 'purchase_order_number';
+      }
+      // Address fields
+      else if (keyLower.match(/bill.*address|billing/)) {
+        initialMappings[key] = 'billing_address';
+      }
+      else if (keyLower.match(/ship.*address|shipping|deliver/)) {
+        initialMappings[key] = 'shipping_address';
+      }
+      // Additional fees
+      else if (keyLower.match(/fee|charge|surcharge/)) {
+        initialMappings[key] = 'additional_fees';
+      }
+      // Notes/Comments
+      else if (keyLower.match(/note|comment|remark|description/)) {
+        initialMappings[key] = 'notes';
+      }
+      // Default to unmapped if no match found
+      else {
+        initialMappings[key] = 'unmapped';
+      }
     });
     return initialMappings;
   });
@@ -44,7 +105,17 @@ export const FieldMappingSuggestions = ({
     { value: 'invoice_date', label: 'Invoice Date' },
     { value: 'due_date', label: 'Due Date' },
     { value: 'total_amount', label: 'Total Amount' },
+    { value: 'subtotal', label: 'Subtotal' },
+    { value: 'tax_amount', label: 'Tax Amount' },
+    { value: 'discount_amount', label: 'Discount Amount' },
+    { value: 'additional_fees', label: 'Additional Fees' },
     { value: 'currency', label: 'Currency' },
+    { value: 'payment_method', label: 'Payment Method' },
+    { value: 'payment_terms', label: 'Payment Terms' },
+    { value: 'purchase_order_number', label: 'Purchase Order Number' },
+    { value: 'billing_address', label: 'Billing Address' },
+    { value: 'shipping_address', label: 'Shipping Address' },
+    { value: 'notes', label: 'Notes' },
     { value: 'custom', label: 'Custom Type' },
     { value: 'unmapped', label: 'Do Not Map' },
   ];

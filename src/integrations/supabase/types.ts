@@ -18,7 +18,10 @@ export type Database = {
           is_required: boolean | null
           updated_at: string | null
           user_id: string
+          validation_message: string | null
           validation_regex: string | null
+          validation_rules: Json | null
+          validation_type: string | null
         }
         Insert: {
           created_at?: string | null
@@ -28,7 +31,10 @@ export type Database = {
           is_required?: boolean | null
           updated_at?: string | null
           user_id: string
+          validation_message?: string | null
           validation_regex?: string | null
+          validation_rules?: Json | null
+          validation_type?: string | null
         }
         Update: {
           created_at?: string | null
@@ -38,7 +44,10 @@ export type Database = {
           is_required?: boolean | null
           updated_at?: string | null
           user_id?: string
+          validation_message?: string | null
           validation_regex?: string | null
+          validation_rules?: Json | null
+          validation_type?: string | null
         }
         Relationships: []
       }

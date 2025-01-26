@@ -8,11 +8,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus, Save, Trash } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { ValidationRuleBuilder } from "./ValidationRuleBuilder";
 
 interface FieldMapping {
   id: string;
   field_name: string;
   validation_regex?: string;
+  validation_type?: string;
+  validation_message?: string;
   is_required: boolean;
   custom_rules: Record<string, any>;
 }
@@ -79,6 +82,8 @@ export const FieldMappingManager = () => {
         .from('field_mappings')
         .update({
           validation_regex: mapping.validation_regex,
+          validation_type: mapping.validation_type,
+          validation_message: mapping.validation_message,
           is_required: mapping.is_required,
           custom_rules: mapping.custom_rules,
         })
@@ -188,21 +193,6 @@ export const FieldMappingManager = () => {
                 <div className="text-sm font-medium">{mapping.field_name}</div>
               </div>
               
-              <div>
-                <Label htmlFor={`regex-${mapping.id}`}>Validation Regex</Label>
-                <Input
-                  id={`regex-${mapping.id}`}
-                  value={mapping.validation_regex || ""}
-                  onChange={(e) =>
-                    updateMutation.mutate({
-                      ...mapping,
-                      validation_regex: e.target.value,
-                    })
-                  }
-                  placeholder="Enter regex pattern..."
-                />
-              </div>
-
               <div className="flex items-center space-x-2">
                 <Switch
                   id={`required-${mapping.id}`}
@@ -216,6 +206,18 @@ export const FieldMappingManager = () => {
                 />
                 <Label htmlFor={`required-${mapping.id}`}>Required Field</Label>
               </div>
+
+              <ValidationRuleBuilder
+                validationType={mapping.validation_type || null}
+                validationRegex={mapping.validation_regex || null}
+                validationMessage={mapping.validation_message || null}
+                onSave={(validationData) =>
+                  updateMutation.mutate({
+                    ...mapping,
+                    ...validationData,
+                  })
+                }
+              />
             </div>
 
             <Button

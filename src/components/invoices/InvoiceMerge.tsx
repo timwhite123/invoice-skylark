@@ -13,13 +13,48 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
-import { Loader2, Upload, Download } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+
+interface MergedInvoiceSummary {
+  total_invoices: number;
+  total_amount: number;
+  total_tax: number;
+  total_subtotal: number;
+  total_discount: number;
+  total_additional_fees: number;
+  currency: string;
+  date_range: {
+    earliest: string;
+    latest: string;
+  };
+}
+
+interface MergedInvoiceData {
+  invoices: Array<{
+    vendor_name: string;
+    invoice_number: string;
+    invoice_date: string;
+    due_date: string;
+    total_amount: number;
+    currency: string;
+    tax_amount: number;
+    subtotal: number;
+    items: Array<{
+      description: string;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+    }>;
+  }>;
+  summary: MergedInvoiceSummary;
+}
 
 export const InvoiceMerge = () => {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isMerging, setIsMerging] = useState(false);
-  const [mergedFileUrl, setMergedFileUrl] = useState<string | null>(null);
+  const [mergedData, setMergedData] = useState<MergedInvoiceData | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -55,7 +90,7 @@ export const InvoiceMerge = () => {
     }
 
     setIsMerging(true);
-    setMergedFileUrl(null);
+    setMergedData(null);
 
     try {
       const { data: mergedData, error } = await supabase.functions
@@ -65,6 +100,8 @@ export const InvoiceMerge = () => {
 
       if (error) throw error;
 
+      setMergedData(mergedData);
+
       // Save the merge history
       const { error: historyError } = await supabase
         .from('export_history')
@@ -72,19 +109,16 @@ export const InvoiceMerge = () => {
           invoice_ids: selectedInvoices,
           export_type: 'merge',
           version: 1,
-          file_url: mergedData.mergedFileUrl,
         });
 
       if (historyError) throw historyError;
 
-      setMergedFileUrl(mergedData.mergedFileUrl);
-
       toast({
         title: "Invoices merged successfully",
-        description: `Combined ${mergedData.count} invoices with a total amount of ${new Intl.NumberFormat('en-US', {
+        description: `Combined ${mergedData.summary.total_invoices} invoices with a total amount of ${new Intl.NumberFormat('en-US', {
           style: 'currency',
-          currency: 'USD'
-        }).format(mergedData.totalAmount)}`,
+          currency: mergedData.summary.currency
+        }).format(mergedData.summary.total_amount)}`,
       });
 
     } catch (error: any) {
@@ -96,12 +130,6 @@ export const InvoiceMerge = () => {
       });
     } finally {
       setIsMerging(false);
-    }
-  };
-
-  const handleDownload = () => {
-    if (mergedFileUrl) {
-      window.open(mergedFileUrl, '_blank');
     }
   };
 
@@ -134,32 +162,56 @@ export const InvoiceMerge = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Select Invoices to Merge</h2>
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleMerge}
-            disabled={selectedInvoices.length < 2 || isMerging}
-          >
-            {isMerging ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Merging...
-              </>
-            ) : (
-              <>Merge Selected ({selectedInvoices.length})</>
-            )}
-          </Button>
-          {mergedFileUrl && (
-            <Button 
-              variant="outline"
-              onClick={handleDownload}
-              className="gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download Merged PDF
-            </Button>
+        <Button 
+          onClick={handleMerge}
+          disabled={selectedInvoices.length < 2 || isMerging}
+        >
+          {isMerging ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Merging...
+            </>
+          ) : (
+            <>Merge Selected ({selectedInvoices.length})</>
           )}
-        </div>
+        </Button>
       </div>
+
+      {mergedData && (
+        <Card className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Merged Data Summary</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-sm text-gray-500">Total Invoices</p>
+              <p className="font-medium">{mergedData.summary.total_invoices}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Amount</p>
+              <p className="font-medium">
+                {new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: mergedData.summary.currency
+                }).format(mergedData.summary.total_amount)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Date Range</p>
+              <p className="font-medium">
+                {format(new Date(mergedData.summary.date_range.earliest), 'MMM d, yyyy')} - {format(new Date(mergedData.summary.date_range.latest), 'MMM d, yyyy')}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Tax</p>
+              <p className="font-medium">
+                {new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: mergedData.summary.currency
+                }).format(mergedData.summary.total_tax)}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="border rounded-lg">
         <Table>

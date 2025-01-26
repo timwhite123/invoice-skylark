@@ -13,6 +13,11 @@ export const InvoiceUpload = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const handleCancel = () => {
+    setFileUrl(null);
+    setExtractedData(null);
+  };
+
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
@@ -58,7 +63,7 @@ export const InvoiceUpload = () => {
 
       if (parseError) throw parseError;
 
-      console.log('Parsed data:', parseData); // Add this log
+      console.log('Parsed data:', parseData);
       setExtractedData(parseData);
 
       // Save to database with explicit user_id
@@ -139,6 +144,7 @@ export const InvoiceUpload = () => {
         <InvoicePreview 
           fileUrl={fileUrl} 
           extractedData={extractedData}
+          onCancel={handleCancel}
         />
       )}
     </div>

@@ -16,9 +16,10 @@ interface InvoicePreviewProps {
     tax_amount?: number;
     subtotal?: number;
   };
+  onCancel: () => void;
 }
 
-export const InvoicePreview = ({ fileUrl, extractedData }: InvoicePreviewProps) => {
+export const InvoicePreview = ({ fileUrl, extractedData, onCancel }: InvoicePreviewProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showMappingSuggestions, setShowMappingSuggestions] = useState(true);
   const { toast } = useToast();
@@ -32,6 +33,10 @@ export const InvoicePreview = ({ fileUrl, extractedData }: InvoicePreviewProps) 
     });
   };
 
+  const handleCancel = () => {
+    onCancel();
+  };
+
   if (!fileUrl) return null;
 
   return (
@@ -40,7 +45,7 @@ export const InvoicePreview = ({ fileUrl, extractedData }: InvoicePreviewProps) 
         <FieldMappingSuggestions
           extractedData={extractedData}
           onAccept={handleAcceptMappings}
-          onCancel={() => setShowMappingSuggestions(false)}
+          onCancel={handleCancel}
         />
       )}
 

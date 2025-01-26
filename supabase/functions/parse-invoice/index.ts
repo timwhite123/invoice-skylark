@@ -45,7 +45,7 @@ serve(async (req) => {
     const { data: { signedUrl }, error: signedUrlError } = await supabase
       .storage
       .from('invoice-files')
-      .createSignedUrl(filePath, 60) // URL valid for 60 seconds
+      .createSignedUrl(filePath, 60)
 
     if (signedUrlError) {
       console.error('Signed URL error:', signedUrlError)
@@ -54,40 +54,82 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
 
-    // Define the parsing template
+    // Enhanced parsing template with improved regex patterns
     const template = {
-      "templateName": "Invoice Parser",
-      "templateVersion": 1,
+      "templateName": "Enhanced Invoice Parser",
+      "templateVersion": 2,
       "objects": [
         {
           "name": "vendor_name",
           "type": "field",
-          "regex": "(?:Company|Vendor|From):\\s*([^\\n]+)"
+          "regex": "(?:Company|Vendor|From|Business|Supplier|Bill\\s*(?:To|From)|Billed\\s*(?:To|From))\\s*[:.]?\\s*([^\\n\\r]{2,50})",
+          "options": {
+            "multiline": true,
+            "caseInsensitive": true
+          }
         },
         {
           "name": "invoice_number",
           "type": "field",
-          "regex": "(?:Invoice|Reference)\\s*(?:#|No\\.?|Number)?\\s*[:.]?\\s*(\\w+[-\\w]*)"
+          "regex": "(?:Invoice|Reference|Bill|Document|Order)\\s*(?:#|No\\.?|Number|ID)?\\s*[:.]?\\s*(\\w+[-\\w]*)",
+          "options": {
+            "multiline": true,
+            "caseInsensitive": true
+          }
         },
         {
           "name": "invoice_date",
           "type": "field",
-          "regex": "(?:Invoice|Date)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
+          "regex": "(?:Invoice|Bill|Order|Document)?\\s*(?:Date)\\s*[:.]?\\s*(\\d{1,2}[-/.\\s]\\d{1,2}[-/.\\s]\\d{2,4}|\\d{4}[-/.\\s]\\d{1,2}[-/.\\s]\\d{1,2})",
+          "options": {
+            "multiline": true,
+            "caseInsensitive": true
+          }
         },
         {
           "name": "due_date",
           "type": "field",
-          "regex": "(?:Due|Payment)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/]\\d{1,2}[-/]\\d{2,4})"
+          "regex": "(?:Due|Payment|Pay\\s*By|Expires?)\\s*(?:Date)?\\s*[:.]?\\s*(\\d{1,2}[-/.\\s]\\d{1,2}[-/.\\s]\\d{2,4}|\\d{4}[-/.\\s]\\d{1,2}[-/.\\s]\\d{1,2})",
+          "options": {
+            "multiline": true,
+            "caseInsensitive": true
+          }
         },
         {
           "name": "total_amount",
           "type": "field",
-          "regex": "(?:Total|Amount|Sum)\\s*(?:Due)?\\s*[:.]?\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
+          "regex": "(?:Total|Amount|Sum|Balance|Due|Payable)\\s*(?:Due|Amount|Payable)?\\s*[:.]?\\s*(?:USD|\\$|€|£)?\\s*(\\d+(?:[.,]\\d{2})?)",
+          "options": {
+            "multiline": true,
+            "caseInsensitive": true
+          }
         },
         {
           "name": "currency",
           "type": "field",
-          "regex": "(USD|EUR|GBP|\\$|€|£)"
+          "regex": "(USD|EUR|GBP|\\$|€|£)",
+          "options": {
+            "multiline": true,
+            "caseInsensitive": true
+          }
+        },
+        {
+          "name": "tax_amount",
+          "type": "field",
+          "regex": "(?:Tax|VAT|GST)\\s*(?:Amount)?\\s*[:.]?\\s*(?:USD|\\$|€|£)?\\s*(\\d+(?:[.,]\\d{2})?)",
+          "options": {
+            "multiline": true,
+            "caseInsensitive": true
+          }
+        },
+        {
+          "name": "subtotal",
+          "type": "field",
+          "regex": "(?:Subtotal|Net\\s*Amount|Amount\\s*Before\\s*Tax)\\s*[:.]?\\s*(?:USD|\\$|€|£)?\\s*(\\d+(?:[.,]\\d{2})?)",
+          "options": {
+            "multiline": true,
+            "caseInsensitive": true
+          }
         }
       ]
     }
@@ -129,14 +171,16 @@ serve(async (req) => {
       )
     }
 
-    // Transform the parsed data
+    // Transform the parsed data with improved field handling
     const transformedData = {
-      vendor_name: parseResult.fields?.find((f: any) => f.name === 'vendor_name')?.value || '',
-      invoice_number: parseResult.fields?.find((f: any) => f.name === 'invoice_number')?.value || '',
-      invoice_date: parseResult.fields?.find((f: any) => f.name === 'invoice_date')?.value || null,
-      due_date: parseResult.fields?.find((f: any) => f.name === 'due_date')?.value || null,
-      total_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'total_amount')?.value || '0'),
-      currency: parseResult.fields?.find((f: any) => f.name === 'currency')?.value || 'USD',
+      vendor_name: parseResult.fields?.find((f: any) => f.name === 'vendor_name')?.value?.trim() || '',
+      invoice_number: parseResult.fields?.find((f: any) => f.name === 'invoice_number')?.value?.trim() || '',
+      invoice_date: parseResult.fields?.find((f: any) => f.name === 'invoice_date')?.value?.trim() || null,
+      due_date: parseResult.fields?.find((f: any) => f.name === 'due_date')?.value?.trim() || null,
+      total_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'total_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      currency: parseResult.fields?.find((f: any) => f.name === 'currency')?.value?.trim() || 'USD',
+      tax_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'tax_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      subtotal: parseFloat(parseResult.fields?.find((f: any) => f.name === 'subtotal')?.value?.replace(/[^0-9.]/g, '') || '0'),
     }
 
     return new Response(

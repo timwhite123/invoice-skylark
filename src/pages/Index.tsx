@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 const Index = () => {
   const { user } = useAuth();
@@ -25,7 +26,7 @@ const Index = () => {
     enabled: !!user,
   });
 
-  const userPlan = profile?.subscription_tier || 'free';
+  const userPlan = (profile?.subscription_tier || 'free') as Database['public']['Tables']['profiles']['Row']['subscription_tier'];
 
   return (
     <div className="container mx-auto py-8">

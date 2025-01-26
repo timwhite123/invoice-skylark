@@ -4,9 +4,12 @@ import { FileUp, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { InvoicePreview } from "./InvoicePreview";
 
 export const InvoiceUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [extractedData, setExtractedData] = useState<Record<string, any> | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -45,6 +48,8 @@ export const InvoiceUpload = () => {
         .from('invoice-files')
         .getPublicUrl(fileName);
 
+      setFileUrl(publicUrl);
+
       // Send to parse-invoice function
       const { data: parseData, error: parseError } = await supabase.functions
         .invoke('parse-invoice', {
@@ -52,6 +57,9 @@ export const InvoiceUpload = () => {
         });
 
       if (parseError) throw parseError;
+
+      console.log('Parsed data:', parseData); // Add this log
+      setExtractedData(parseData);
 
       // Save to database with explicit user_id
       const { error: dbError } = await supabase
@@ -104,26 +112,35 @@ export const InvoiceUpload = () => {
   });
 
   return (
-    <div
-      {...getRootProps()}
-      className={`
-        flex flex-col items-center justify-center p-10 border-2 border-dashed
-        rounded-lg cursor-pointer transition-colors bg-white
-        ${isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300'}
-        ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
-      `}
-    >
-      <input {...getInputProps()} disabled={isUploading} />
-      {isUploading ? (
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
-      ) : (
-        <FileUp className="h-10 w-10 text-gray-400" />
+    <div className="space-y-6">
+      <div
+        {...getRootProps()}
+        className={`
+          flex flex-col items-center justify-center p-10 border-2 border-dashed
+          rounded-lg cursor-pointer transition-colors bg-white
+          ${isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300'}
+          ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
+        `}
+      >
+        <input {...getInputProps()} disabled={isUploading} />
+        {isUploading ? (
+          <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        ) : (
+          <FileUp className="h-10 w-10 text-gray-400" />
+        )}
+        <p className="mt-2 text-sm text-gray-600">
+          {isDragActive
+            ? "Drop your invoice here"
+            : "Drag and drop your invoice PDF, or click to select"}
+        </p>
+      </div>
+
+      {fileUrl && extractedData && (
+        <InvoicePreview 
+          fileUrl={fileUrl} 
+          extractedData={extractedData}
+        />
       )}
-      <p className="mt-2 text-sm text-gray-600">
-        {isDragActive
-          ? "Drop your invoice here"
-          : "Drag and drop your invoice PDF, or click to select"}
-      </p>
     </div>
   );
 };

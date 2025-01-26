@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 
 const Index = () => {
   const { user } = useAuth();
@@ -34,7 +33,7 @@ const Index = () => {
   // Default to 'free' if profile is not loaded or subscription_tier is null
   const userPlan = profile?.subscription_tier || 'free';
 
-  console.log('Current user plan:', userPlan); // Add this for debugging
+  console.log('Current user plan:', userPlan); // Debug log
 
   return (
     <div className="container mx-auto py-8">

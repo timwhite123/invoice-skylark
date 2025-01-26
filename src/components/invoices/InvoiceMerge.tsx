@@ -47,12 +47,12 @@ interface InvoiceMergeProps {
   userPlan?: 'free' | 'pro' | 'enterprise';
 }
 
-export const InvoiceMerge = ({ userPlan = 'free' }: InvoiceMergeProps) => {
-  console.log('InvoiceMerge userPlan:', userPlan); // Add this for debugging
+export const InvoiceMerge = ({ userPlan }: InvoiceMergeProps) => {
+  console.log('InvoiceMerge userPlan:', userPlan); // Debug log
 
-  // If user is on free plan, show the empty state immediately
-  if (userPlan === 'free') {
-    console.log('Showing FreePlanEmptyState'); // Add this for debugging
+  // Early return for free plan users
+  if (!userPlan || userPlan === 'free') {
+    console.log('Showing FreePlanEmptyState for plan:', userPlan); // Debug log
     return <FreePlanEmptyState />;
   }
 

@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { InvoicePreview } from "./InvoicePreview";
 
 interface InvoiceUploadProps {
-  userPlan: string;
+  userPlan: 'free' | 'pro' | 'enterprise';
 }
 
 export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {

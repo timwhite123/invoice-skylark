@@ -10,7 +10,7 @@ const Index = () => {
   const { user } = useAuth();
 
   // Fetch user's subscription status
-  const { data: userPlan } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ['user-plan', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -20,10 +20,12 @@ const Index = () => {
         .single();
 
       if (error) throw error;
-      return data?.subscription_tier || 'free';
+      return data;
     },
     enabled: !!user,
   });
+
+  const userPlan = profile?.subscription_tier || 'free';
 
   return (
     <div className="container mx-auto py-8">
@@ -36,11 +38,11 @@ const Index = () => {
         </TabsList>
 
         <TabsContent value="upload" className="space-y-6">
-          <InvoiceUpload userPlan={userPlan || 'free'} />
+          <InvoiceUpload userPlan={userPlan} />
         </TabsContent>
 
         <TabsContent value="merge">
-          <InvoiceMerge userPlan={userPlan || 'free'} />
+          <InvoiceMerge userPlan={userPlan} />
         </TabsContent>
       </Tabs>
     </div>

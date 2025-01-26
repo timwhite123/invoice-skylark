@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Upload, FileText, Download } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ExportMenu } from "@/components/invoices/ExportMenu";
 import { InvoiceUpload } from "@/components/invoices/InvoiceUpload";
+import { InvoicePreview } from "@/components/invoices/InvoicePreview";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -58,42 +59,25 @@ const Index = () => {
             <InvoiceUpload />
           </div>
 
+          {/* Preview Section - Only shown after processing */}
+          {latestInvoice && (
+            <InvoicePreview
+              fileUrl={latestInvoice.original_file_url}
+              extractedData={{
+                vendor_name: latestInvoice.vendor_name,
+                invoice_number: latestInvoice.invoice_number,
+                invoice_date: latestInvoice.invoice_date,
+                due_date: latestInvoice.due_date,
+                total_amount: latestInvoice.total_amount,
+                currency: latestInvoice.currency,
+              }}
+            />
+          )}
+
           {/* Export Section - Only shown after processing */}
           {latestInvoice && (
             <Card className="p-6 animate-fadeIn">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-primary-800">Your invoice has been processed!</h2>
-                  <p className="text-sm text-gray-500">Quick access to your most recent invoice</p>
-                </div>
-                <Link to="/invoices">
-                  <Button variant="outline" size="sm">
-                    View All Invoices
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Invoice Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm text-gray-500">Vendor</p>
-                  <p className="font-medium">{latestInvoice.vendor_name || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Invoice Number</p>
-                  <p className="font-medium">{latestInvoice.invoice_number || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Total Amount</p>
-                  <p className="font-medium">
-                    {latestInvoice.total_amount
-                      ? `${latestInvoice.currency || '$'}${Number(latestInvoice.total_amount).toFixed(2)}`
-                      : 'N/A'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 <ExportMenu userPlan={userPlan} onExport={(format) => console.log(`Exporting as ${format}`)} />
                 <p className="text-sm text-gray-500">
                   Need more export options?{' '}

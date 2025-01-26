@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      field_mappings: {
+        Row: {
+          created_at: string | null
+          custom_rules: Json | null
+          field_name: string
+          id: string
+          is_required: boolean | null
+          updated_at: string | null
+          user_id: string
+          validation_regex: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_rules?: Json | null
+          field_name: string
+          id?: string
+          is_required?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          validation_regex?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_rules?: Json | null
+          field_name?: string
+          id?: string
+          is_required?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          validation_regex?: string | null
+        }
+        Relationships: []
+      }
       invoice_items: {
         Row: {
           created_at: string | null

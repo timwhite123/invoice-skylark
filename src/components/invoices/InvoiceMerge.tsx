@@ -48,16 +48,16 @@ interface InvoiceMergeProps {
 }
 
 export const InvoiceMerge = ({ userPlan = 'free' }: InvoiceMergeProps) => {
+  // If user is on free plan, show the empty state immediately
+  if (userPlan === 'free') {
+    return <FreePlanEmptyState />;
+  }
+
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isMerging, setIsMerging] = useState(false);
   const [mergedData, setMergedData] = useState<MergedInvoiceData | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  // If user is on free plan, show the empty state
-  if (userPlan === 'free') {
-    return <FreePlanEmptyState />;
-  }
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices'],

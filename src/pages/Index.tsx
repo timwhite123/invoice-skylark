@@ -12,7 +12,7 @@ const Index = () => {
 
   // Fetch user's subscription status
   const { data: profile } = useQuery({
-    queryKey: ['user-plan', user?.id],
+    queryKey: ['profile', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -26,7 +26,7 @@ const Index = () => {
     enabled: !!user,
   });
 
-  const userPlan = (profile?.subscription_tier || 'free') as Database['public']['Tables']['profiles']['Row']['subscription_tier'];
+  const userPlan = profile?.subscription_tier || 'free';
 
   return (
     <div className="container mx-auto py-8">

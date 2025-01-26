@@ -203,7 +203,7 @@ export type Database = {
           tax_amount?: number | null
           total_amount?: number | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string
           vendor_name?: string | null
         }
         Relationships: []
@@ -216,7 +216,7 @@ export type Database = {
           full_name: string | null
           id: string
           provider: string | null
-          subscription_tier: 'free' | 'pro' | 'enterprise'
+          subscription_tier: string
           updated_at: string | null
         }
         Insert: {
@@ -226,7 +226,7 @@ export type Database = {
           full_name?: string | null
           id: string
           provider?: string | null
-          subscription_tier?: 'free' | 'pro' | 'enterprise'
+          subscription_tier?: string
           updated_at?: string | null
         }
         Update: {
@@ -236,7 +236,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           provider?: string | null
-          subscription_tier?: 'free' | 'pro' | 'enterprise'
+          subscription_tier?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -266,7 +266,7 @@ export type Tables<
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never,
+    : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
       Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
@@ -299,10 +299,10 @@ export type TablesInsert<
     : never
   : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
     ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+        Insert: infer I
+      }
+      ? I
+      : never
     : never
 
 export type TablesUpdate<
@@ -320,10 +320,10 @@ export type TablesUpdate<
     : never
   : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
     ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+        Update: infer U
+      }
+      ? U
+      : never
     : never
 
 export type Enums<

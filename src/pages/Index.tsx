@@ -2,8 +2,29 @@ import { Button } from "@/components/ui/button";
 import { InvoiceUpload } from "@/components/invoices/InvoiceUpload";
 import { InvoiceMerge } from "@/components/invoices/InvoiceMerge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const { user } = useAuth();
+
+  // Fetch user's subscription status
+  const { data: userPlan } = useQuery({
+    queryKey: ['user-plan', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+      return data?.subscription_tier || 'free';
+    },
+    enabled: !!user,
+  });
+
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Invoice Processing</h1>
@@ -15,11 +36,11 @@ const Index = () => {
         </TabsList>
 
         <TabsContent value="upload" className="space-y-6">
-          <InvoiceUpload />
+          <InvoiceUpload userPlan={userPlan || 'free'} />
         </TabsContent>
 
         <TabsContent value="merge">
-          <InvoiceMerge />
+          <InvoiceMerge userPlan={userPlan || 'free'} />
         </TabsContent>
       </Tabs>
     </div>

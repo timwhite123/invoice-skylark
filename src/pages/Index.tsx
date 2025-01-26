@@ -11,22 +11,30 @@ const Index = () => {
   const { user } = useAuth();
 
   // Fetch user's subscription status
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
+      if (!user?.id) return null;
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('subscription_tier')
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
       return data;
     },
     enabled: !!user,
   });
 
+  // Default to 'free' if profile is not loaded or subscription_tier is null
   const userPlan = profile?.subscription_tier || 'free';
+
+  console.log('Current user plan:', userPlan); // Add this for debugging
 
   return (
     <div className="container mx-auto py-8">

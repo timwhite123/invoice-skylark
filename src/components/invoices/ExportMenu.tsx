@@ -32,12 +32,12 @@ export const ExportMenu = ({ userPlan, onExport, isMerged = false }: ExportMenuP
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <FileDown className="h-4 w-4" />
+        <Button size="lg" className="gap-2">
+          <FileDown className="h-5 w-5" />
           Export {isMerged ? "Merged" : ""}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => handleExport("text")}>
           Text
         </DropdownMenuItem>

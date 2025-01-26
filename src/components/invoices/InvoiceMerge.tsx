@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const InvoiceMerge = () => {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices'],
@@ -61,6 +63,23 @@ export const InvoiceMerge = () => {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!invoices?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 space-y-4 text-center border-2 border-dashed rounded-lg bg-background/50">
+        <Upload className="h-12 w-12 text-muted-foreground" />
+        <div className="space-y-2">
+          <h3 className="font-semibold text-lg">No invoices found</h3>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Upload some invoices first before using the merge feature.
+          </p>
+        </div>
+        <Button onClick={() => navigate("/")}>
+          Upload Invoices
+        </Button>
       </div>
     );
   }

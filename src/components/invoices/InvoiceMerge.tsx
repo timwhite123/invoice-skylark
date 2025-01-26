@@ -54,6 +54,11 @@ export const InvoiceMerge = ({ userPlan = 'free' }: InvoiceMergeProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // If user is on free plan, show the empty state
+  if (userPlan === 'free') {
+    return <FreePlanEmptyState />;
+  }
+
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: async () => {
@@ -127,10 +132,6 @@ export const InvoiceMerge = ({ userPlan = 'free' }: InvoiceMergeProps) => {
       setIsMerging(false);
     }
   };
-
-  if (userPlan === 'free') {
-    return <FreePlanEmptyState />;
-  }
 
   if (isLoading) {
     return (

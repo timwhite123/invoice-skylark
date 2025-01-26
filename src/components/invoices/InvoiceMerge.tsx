@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
-import { Loader2, Lock, Upload } from "lucide-react";
+import { Loader2, Lock, Upload, Crown, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 
@@ -138,23 +138,65 @@ export const InvoiceMerge = ({ userPlan = 'free' }: InvoiceMergeProps) => {
 
   if (userPlan === 'free') {
     return (
-      <div className="flex flex-col items-center justify-center p-12 space-y-6 text-center border-2 border-dashed rounded-lg bg-background/50">
-        <div className="p-4 rounded-full bg-primary/10">
-          <Lock className="h-12 w-12 text-primary" />
-        </div>
-        <div className="space-y-2 max-w-sm">
-          <h3 className="font-semibold text-xl">Upgrade to Merge Invoices</h3>
-          <p className="text-sm text-muted-foreground">
-            The invoice merge feature is available on our Pro and Enterprise plans. Upgrade now to combine multiple invoices and streamline your workflow.
-          </p>
-        </div>
-        <div className="space-x-4">
-          <Button onClick={() => navigate("/pricing")} variant="default">
-            View Pricing
-          </Button>
-          <Button onClick={() => navigate("/")} variant="outline">
-            Back to Upload
-          </Button>
+      <div className="relative overflow-hidden">
+        <div className="flex flex-col items-center justify-center p-16 space-y-8 text-center border-2 border-dashed rounded-lg bg-gradient-to-b from-background to-background/50">
+          {/* Premium Badge */}
+          <div className="absolute top-4 right-4">
+            <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+              <Crown className="h-4 w-4" />
+              Premium Feature
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="p-6 rounded-full bg-primary/10">
+            <Lock className="h-16 w-16 text-primary" />
+          </div>
+          
+          <div className="max-w-md space-y-4">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Unlock Invoice Merging
+            </h2>
+            <p className="text-muted-foreground">
+              Combine multiple invoices into a single document, streamline your workflow, 
+              and save time with our powerful merging feature. Available on Pro and Enterprise plans.
+            </p>
+          </div>
+
+          {/* Feature List */}
+          <div className="grid gap-4 text-left text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Merge unlimited invoices into a single document
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Export merged data in multiple formats
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Smart data consolidation and validation
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <Button 
+              onClick={() => navigate("/pricing")} 
+              size="lg"
+              className="gap-2"
+            >
+              Upgrade Now
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button 
+              onClick={() => navigate("/")} 
+              variant="outline"
+              size="lg"
+            >
+              Back to Upload
+            </Button>
+          </div>
         </div>
       </div>
     );

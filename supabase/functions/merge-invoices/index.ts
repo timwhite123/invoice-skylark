@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,7 +27,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Fetch all invoices
+    // Fetch all invoices with their file URLs
     const { data: invoices, error: fetchError } = await supabase
       .from('invoices')
       .select('*')
@@ -37,12 +38,54 @@ serve(async (req) => {
       throw fetchError
     }
 
-    // For now, we'll just return the combined data
-    // In Phase 3, we'll implement actual PDF merging
+    // Create a new PDF document
+    const mergedPdf = await PDFDocument.create()
+    
+    // Download and merge each PDF
+    for (const invoice of invoices) {
+      if (invoice.original_file_url) {
+        try {
+          const response = await fetch(invoice.original_file_url)
+          const pdfBytes = await response.arrayBuffer()
+          const pdf = await PDFDocument.load(pdfBytes)
+          const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices())
+          copiedPages.forEach((page) => mergedPdf.addPage(page))
+        } catch (error) {
+          console.error(`Error processing PDF for invoice ${invoice.id}:`, error)
+        }
+      }
+    }
+
+    // Save the merged PDF
+    const mergedPdfBytes = await mergedPdf.save()
+    
+    // Upload the merged PDF to Supabase Storage
+    const timestamp = new Date().toISOString()
+    const fileName = `merged-invoices-${timestamp}.pdf`
+    
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('invoice-files')
+      .upload(`merged/${fileName}`, mergedPdfBytes, {
+        contentType: 'application/pdf',
+      })
+
+    if (uploadError) {
+      console.error('Error uploading merged PDF:', uploadError)
+      throw uploadError
+    }
+
+    // Get the public URL for the merged PDF
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from('invoice-files')
+      .getPublicUrl(`merged/${fileName}`)
+
     const mergedData = {
       invoices,
       totalAmount: invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0),
       count: invoices.length,
+      mergedFileUrl: publicUrl,
     }
 
     return new Response(

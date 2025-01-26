@@ -13,12 +13,13 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const InvoiceMerge = () => {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isMerging, setIsMerging] = useState(false);
+  const [mergedFileUrl, setMergedFileUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -54,6 +55,7 @@ export const InvoiceMerge = () => {
     }
 
     setIsMerging(true);
+    setMergedFileUrl(null);
 
     try {
       const { data: mergedData, error } = await supabase.functions
@@ -70,9 +72,12 @@ export const InvoiceMerge = () => {
           invoice_ids: selectedInvoices,
           export_type: 'merge',
           version: 1,
+          file_url: mergedData.mergedFileUrl,
         });
 
       if (historyError) throw historyError;
+
+      setMergedFileUrl(mergedData.mergedFileUrl);
 
       toast({
         title: "Invoices merged successfully",
@@ -81,9 +86,6 @@ export const InvoiceMerge = () => {
           currency: 'USD'
         }).format(mergedData.totalAmount)}`,
       });
-
-      // Reset selection after successful merge
-      setSelectedInvoices([]);
 
     } catch (error: any) {
       console.error('Merge error:', error);
@@ -94,6 +96,12 @@ export const InvoiceMerge = () => {
       });
     } finally {
       setIsMerging(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (mergedFileUrl) {
+      window.open(mergedFileUrl, '_blank');
     }
   };
 
@@ -126,19 +134,31 @@ export const InvoiceMerge = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Select Invoices to Merge</h2>
-        <Button 
-          onClick={handleMerge}
-          disabled={selectedInvoices.length < 2 || isMerging}
-        >
-          {isMerging ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Merging...
-            </>
-          ) : (
-            <>Merge Selected ({selectedInvoices.length})</>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleMerge}
+            disabled={selectedInvoices.length < 2 || isMerging}
+          >
+            {isMerging ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Merging...
+              </>
+            ) : (
+              <>Merge Selected ({selectedInvoices.length})</>
+            )}
+          </Button>
+          {mergedFileUrl && (
+            <Button 
+              variant="outline"
+              onClick={handleDownload}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download Merged PDF
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg">

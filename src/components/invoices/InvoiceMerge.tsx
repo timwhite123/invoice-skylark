@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 
 export const InvoiceMerge = () => {
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [isMerging, setIsMerging] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -52,11 +53,48 @@ export const InvoiceMerge = () => {
       return;
     }
 
-    // TODO: Implement merge functionality
-    toast({
-      title: "Coming soon",
-      description: "Invoice merging functionality will be available soon!",
-    });
+    setIsMerging(true);
+
+    try {
+      const { data: mergedData, error } = await supabase.functions
+        .invoke('merge-invoices', {
+          body: { invoiceIds: selectedInvoices },
+        });
+
+      if (error) throw error;
+
+      // Save the merge history
+      const { error: historyError } = await supabase
+        .from('export_history')
+        .insert({
+          invoice_ids: selectedInvoices,
+          export_type: 'merge',
+          version: 1,
+        });
+
+      if (historyError) throw historyError;
+
+      toast({
+        title: "Invoices merged successfully",
+        description: `Combined ${mergedData.count} invoices with a total amount of ${new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD'
+        }).format(mergedData.totalAmount)}`,
+      });
+
+      // Reset selection after successful merge
+      setSelectedInvoices([]);
+
+    } catch (error: any) {
+      console.error('Merge error:', error);
+      toast({
+        title: "Failed to merge invoices",
+        description: error.message || "There was an error merging the invoices",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMerging(false);
+    }
   };
 
   if (isLoading) {
@@ -90,9 +128,16 @@ export const InvoiceMerge = () => {
         <h2 className="text-xl font-semibold">Select Invoices to Merge</h2>
         <Button 
           onClick={handleMerge}
-          disabled={selectedInvoices.length < 2}
+          disabled={selectedInvoices.length < 2 || isMerging}
         >
-          Merge Selected ({selectedInvoices.length})
+          {isMerging ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Merging...
+            </>
+          ) : (
+            <>Merge Selected ({selectedInvoices.length})</>
+          )}
         </Button>
       </div>
 
@@ -115,6 +160,7 @@ export const InvoiceMerge = () => {
                   <Checkbox
                     checked={selectedInvoices.includes(invoice.id)}
                     onCheckedChange={() => handleToggleSelect(invoice.id)}
+                    disabled={isMerging}
                   />
                 </TableCell>
                 <TableCell>{invoice.vendor_name}</TableCell>

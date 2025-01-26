@@ -9,6 +9,80 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      export_history: {
+        Row: {
+          created_at: string | null
+          export_type: string
+          file_url: string | null
+          id: string
+          invoice_ids: string[]
+          template_id: string | null
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string | null
+          export_type: string
+          file_url?: string | null
+          id?: string
+          invoice_ids: string[]
+          template_id?: string | null
+          user_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string | null
+          export_type?: string
+          file_url?: string | null
+          id?: string
+          invoice_ids?: string[]
+          template_id?: string | null
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "export_history_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "export_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      export_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          template_data: Json
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          template_data?: Json
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          template_data?: Json
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       field_mappings: {
         Row: {
           created_at: string | null

@@ -103,24 +103,7 @@ export const InvoicePreview = ({
           )}
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* PDF Preview */}
-            <Card className="p-4 bg-white">
-              <h3 className="text-lg font-semibold mb-4">Document Preview</h3>
-              <div className="relative aspect-[3/4] w-full bg-gray-50 rounded-lg overflow-hidden">
-                {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                )}
-                <iframe
-                  src={`${fileUrl}#toolbar=0`}
-                  className="w-full h-full"
-                  onLoad={() => setIsLoading(false)}
-                />
-              </div>
-            </Card>
-
-            {/* Extracted Data */}
+            {/* Extracted Data - Now on the left */}
             <Card className="p-4 bg-white">
               <div className="flex flex-col h-full">
                 <h3 className="text-lg font-semibold mb-4">Extracted Information</h3>
@@ -141,7 +124,7 @@ export const InvoicePreview = ({
                   </div>
                 </ScrollArea>
                 
-                {/* Export Section - Made more prominent */}
+                {/* Export Section */}
                 <div className="mt-6 pt-4 border-t border-gray-100">
                   <div className="flex justify-end">
                     <ExportMenu 
@@ -150,6 +133,23 @@ export const InvoicePreview = ({
                     />
                   </div>
                 </div>
+              </div>
+            </Card>
+
+            {/* PDF Preview - Now on the right */}
+            <Card className="p-4 bg-white">
+              <h3 className="text-lg font-semibold mb-4">Document Preview</h3>
+              <div className="relative aspect-[3/4] w-full bg-gray-50 rounded-lg overflow-hidden">
+                {isLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                )}
+                <iframe
+                  src={`${fileUrl}#toolbar=0`}
+                  className="w-full h-full"
+                  onLoad={() => setIsLoading(false)}
+                />
               </div>
             </Card>
           </div>

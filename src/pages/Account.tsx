@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Json } from "@/integrations/supabase/types";
 
 // Types for profile and subscription data
 type Profile = {
@@ -19,7 +20,11 @@ type SubscriptionTier = {
   name: string;
   stripe_price_id: string;
   monthly_export_limit: number;
-  features: string[];
+  features: Json;
+  id: string;
+  file_size_limit_mb: number;
+  created_at: string;
+  updated_at: string;
 };
 
 const Account = () => {
@@ -188,7 +193,7 @@ const Account = () => {
             <div className="space-y-4">
               <h3 className="font-medium">Your Plan Includes:</h3>
               <ul className="space-y-2">
-                {currentTier?.features.map((feature) => (
+                {Array.isArray(currentTier?.features) && currentTier?.features.map((feature: string) => (
                   <li key={feature} className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary" />
                     <span>{feature}</span>

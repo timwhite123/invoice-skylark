@@ -264,13 +264,18 @@ export const FieldMappingSuggestions = ({
         ))}
       </div>
 
-      <div className="flex justify-end gap-4 pt-4">
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button onClick={handleAccept}>
-          Accept Mappings
-        </Button>
+      <div className="space-y-4">
+        <div className="text-center text-sm text-muted-foreground">
+          Review and accept the field mappings to proceed with exporting your document
+        </div>
+        <div className="flex justify-center gap-4">
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button onClick={handleAccept}>
+            Accept Mappings
+          </Button>
+        </div>
       </div>
     </Card>
   );

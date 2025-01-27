@@ -5,7 +5,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { FileDown, Lock, Export } from "lucide-react";
+import { FileDown, Lock, FileUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExportMenuProps {
@@ -33,7 +33,7 @@ export const ExportMenu = ({ userPlan, onExport, isMerged = false }: ExportMenuP
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button size="lg" className="gap-2 bg-brand-blue hover:bg-brand-blue-dark text-white font-semibold px-6">
-          <Export className="h-5 w-5" />
+          <FileUp className="h-5 w-5" />
           Export {isMerged ? "Merged" : "Document"}
         </Button>
       </DropdownMenuTrigger>

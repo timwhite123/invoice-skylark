@@ -75,6 +75,10 @@ const Account = () => {
   const isFreePlan = planData.plan === "Free";
   const usagePercentage = (planData.invoicesUsed / planData.invoicesLimit) * 100;
 
+  const handleBillingPortal = () => {
+    window.location.href = "https://billing.stripe.com/p/login/5kA00r5qu1HO5MsfYY";
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-5xl">
@@ -140,7 +144,7 @@ const Account = () => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-4">
-          <Button variant="outline" className="w-full sm:w-auto">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={handleBillingPortal}>
             <CreditCard className="mr-2" />
             Manage Billing
           </Button>

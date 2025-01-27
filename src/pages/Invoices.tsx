@@ -25,7 +25,7 @@ import { ExportMenu } from "@/components/invoices/ExportMenu";
 import { Badge } from "@/components/ui/badge";
 import { ExportHistory } from "@/components/invoices/ExportHistory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 // Mock user plan for now - will be replaced with actual user plan from Supabase
@@ -41,6 +41,7 @@ const Invoices = () => {
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices', sortField, sortDirection],
@@ -67,6 +68,32 @@ const Invoices = () => {
 
       return data;
     }
+  });
+
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: async (invoiceIds: string[]) => {
+      const { error } = await supabase
+        .from('invoices')
+        .delete()
+        .in('id', invoiceIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: `Successfully deleted ${selectedInvoices.length} invoice(s)`,
+      });
+      setSelectedInvoices([]);
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting invoices",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredInvoices = invoices?.filter(
@@ -117,7 +144,7 @@ const Invoices = () => {
     // Merge logic will be implemented later
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (selectedInvoices.length === 0) {
       toast({
         title: "Select invoices",
@@ -127,11 +154,11 @@ const Invoices = () => {
       return;
     }
 
-    toast({
-      title: "Deleting invoices",
-      description: `Deleting ${selectedInvoices.length} invoices`,
-    });
-    // Delete logic will be implemented later
+    try {
+      await deleteInvoiceMutation.mutateAsync(selectedInvoices);
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
+    }
   };
 
   return (
@@ -182,8 +209,13 @@ const Invoices = () => {
                     variant="outline" 
                     className="gap-2 text-destructive"
                     onClick={handleDelete}
+                    disabled={deleteInvoiceMutation.isPending}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    {deleteInvoiceMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
                     Delete
                   </Button>
                 </div>

@@ -8,8 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Json } from "@/integrations/supabase/types";
+import { useQuery } from "@tanstack/react-query";
 
-// Types for profile and subscription data
 type Profile = {
   full_name: string | null;
   email: string;
@@ -35,10 +35,29 @@ const Account = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentTier, setCurrentTier] = useState<SubscriptionTier | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [invoicesUsed, setInvoicesUsed] = useState(0);
+
+  const { data: invoicesCount = 0 } = useQuery({
+    queryKey: ['invoices-count', user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { count, error } = await supabase
+        .from('invoices')
+        .select('*', { count: 'exact' })
+        .eq('user_id', user.id)
+        .gte('created_at', startOfMonth.toISOString());
+
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user,
+  });
 
   useEffect(() => {
-    // Show success/error messages based on URL params
     if (searchParams.get('success') === 'true') {
       toast({
         title: "Subscription updated",
@@ -56,7 +75,6 @@ const Account = () => {
       try {
         if (!user) return;
 
-        // Fetch profile data
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('full_name, email, subscription_tier')
@@ -67,7 +85,6 @@ const Account = () => {
 
         setProfile(profileData);
 
-        // Fetch current subscription tier details
         if (profileData.subscription_tier) {
           const { data: tierData, error: tierError } = await supabase
             .from('subscription_tiers')
@@ -78,20 +95,6 @@ const Account = () => {
           if (tierError) throw tierError;
           setCurrentTier(tierData);
         }
-
-        // Count invoices for the current month
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-
-        const { count, error: invoiceError } = await supabase
-          .from('invoices')
-          .select('*', { count: 'exact' })
-          .eq('user_id', user.id)
-          .gte('created_at', startOfMonth.toISOString());
-
-        if (invoiceError) throw invoiceError;
-        setInvoicesUsed(count || 0);
 
       } catch (error: any) {
         toast({
@@ -109,7 +112,6 @@ const Account = () => {
 
   const handleUpgradeClick = async (priceId: string) => {
     try {
-      // Get the session token
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) throw sessionError;
@@ -142,6 +144,10 @@ const Account = () => {
     window.location.href = "https://billing.stripe.com/p/login/5kA00r5qu1HO5MsfYY";
   };
 
+  const usagePercentage = currentTier 
+    ? (invoicesCount / currentTier.monthly_export_limit) * 100 
+    : 0;
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-5xl">
@@ -153,15 +159,10 @@ const Account = () => {
     );
   }
 
-  const usagePercentage = currentTier 
-    ? (invoicesUsed / currentTier.monthly_export_limit) * 100 
-    : 0;
-
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl space-y-8 animate-fadeIn">
       <h1 className="text-3xl font-bold">Account Settings</h1>
 
-      {/* Profile Section */}
       <Card>
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
@@ -179,9 +180,7 @@ const Account = () => {
         </CardContent>
       </Card>
 
-      {/* Subscription and Pro Plan Section - Two Column Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Current Plan Section */}
         <Card>
           <CardHeader>
             <CardTitle>Current Plan: {currentTier?.name.charAt(0).toUpperCase() + currentTier?.name.slice(1)}</CardTitle>
@@ -190,16 +189,14 @@ const Account = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Usage Progress */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Monthly Invoice Usage</span>
-                <span>{invoicesUsed} / {currentTier?.monthly_export_limit}</span>
+                <span>{invoicesCount} / {currentTier?.monthly_export_limit}</span>
               </div>
               <Progress value={usagePercentage} className="h-2" />
             </div>
 
-            {/* Current Plan Features */}
             <div className="space-y-4">
               <h3 className="font-medium">Your Plan Includes:</h3>
               <ul className="space-y-2">
@@ -220,7 +217,6 @@ const Account = () => {
           </CardFooter>
         </Card>
 
-        {/* Pro Plan CTA (shown only for free users) */}
         {profile?.subscription_tier === 'free' && (
           <Card className="bg-brand-green-light border-brand-green/20">
             <CardHeader>
@@ -256,11 +252,14 @@ const Account = () => {
             </CardContent>
             <CardFooter>
               <Button 
-                className="w-full sm:w-auto" 
+                className="w-full sm:w-auto group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:translate-y-[-2px]" 
                 onClick={() => handleUpgradeClick('price_1QfoT0LE6W0PtlHKSGyUhUtI')}
               >
-                Upgrade Now
-                <ChevronRight className="ml-2" />
+                <span className="relative z-10 flex items-center gap-2">
+                  Upgrade Now
+                  <ChevronRight className="ml-2 transition-transform group-hover:translate-x-1" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-brand-blue-dark opacity-0 group-hover:opacity-100 transition-opacity" />
               </Button>
             </CardFooter>
           </Card>

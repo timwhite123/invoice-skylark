@@ -52,11 +52,25 @@ const Index = () => {
     enabled: !!user,
   });
 
-  // Ensure userPlan is properly typed as SubscriptionTier
   const userPlan = (profile?.subscription_tier || 'free') as SubscriptionTier;
   const hasInvoices = invoices && invoices.length > 0;
 
-  console.log('Current user plan:', userPlan); // Debug log
+  if (!user) {
+    return (
+      <div className="container mx-auto py-8">
+        <EmptyState
+          title="Welcome to InvoiceJet.ai!"
+          description="Sign in to start processing and managing your invoices efficiently."
+          icon={<FileUp className="w-full h-full" />}
+          action={{
+            label: "Sign In",
+            onClick: () => window.location.href = '/auth'
+          }}
+          className="min-h-[400px] bg-white rounded-lg shadow-sm border border-gray-100 hover:border-primary/20 transition-colors"
+        />
+      </div>
+    );
+  }
 
   if (!hasInvoices) {
     return (
@@ -89,7 +103,12 @@ const Index = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Invoice Processing</h1>
+      <div className="space-y-4 mb-8">
+        <h1 className="text-3xl font-bold">Welcome back!</h1>
+        <p className="text-gray-600">
+          Process your invoices quickly and efficiently with InvoiceJet.ai
+        </p>
+      </div>
       
       <Tabs defaultValue="upload" className="space-y-6">
         <TabsList>

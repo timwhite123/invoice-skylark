@@ -109,8 +109,17 @@ const Account = () => {
 
   const handleUpgradeClick = async (priceId: string) => {
     try {
+      // Get the session token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('No session found');
+
       const response = await supabase.functions.invoke('create-checkout', {
         body: { priceId },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (response.error) throw response.error;
@@ -125,6 +134,7 @@ const Account = () => {
         title: "Error",
         description: "Failed to start checkout process. Please try again.",
       });
+      console.error('Checkout error:', error);
     }
   };
 

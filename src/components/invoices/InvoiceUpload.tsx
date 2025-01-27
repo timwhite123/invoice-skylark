@@ -1,17 +1,25 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { FileUp, Loader2 } from "lucide-react";
+import { FileUp, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { InvoicePreview } from "./InvoicePreview";
+import { Progress } from "@/components/ui/progress";
 
 interface InvoiceUploadProps {
   userPlan: 'free' | 'pro' | 'enterprise';
 }
 
+const FILE_SIZE_LIMITS = {
+  free: 25 * 1024 * 1024, // 25MB
+  pro: 100 * 1024 * 1024, // 100MB
+  enterprise: 500 * 1024 * 1024, // 500MB
+};
+
 export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [fileUrls, setFileUrls] = useState<string[]>([]);
@@ -24,15 +32,28 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
     setFileUrls([]);
     setExtractedData([]);
     setCurrentFileIndex(0);
+    setUploadProgress(0);
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const maxFiles = userPlan === 'free' ? 1 : 10;
+    const sizeLimit = FILE_SIZE_LIMITS[userPlan];
     
     if (acceptedFiles.length > maxFiles) {
       toast({
         title: "Too many files",
-        description: `Free plan allows only ${maxFiles} file at a time. Upgrade to process multiple files.`,
+        description: `${userPlan === 'free' ? 'Free plan allows only 1 file' : `Maximum ${maxFiles} files`} at a time. Upgrade to process more files.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file sizes
+    const oversizedFiles = acceptedFiles.filter(file => file.size > sizeLimit);
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "File too large",
+        description: `Maximum file size for ${userPlan} plan is ${sizeLimit / (1024 * 1024)}MB. Please upgrade your plan for larger files.`,
         variant: "destructive",
       });
       return;
@@ -50,11 +71,13 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
 
     setFiles(acceptedFiles);
     setIsUploading(true);
+    setUploadProgress(0);
 
     try {
       for (let i = 0; i < acceptedFiles.length; i++) {
         const file = acceptedFiles[i];
         setCurrentFileIndex(i);
+        setUploadProgress((i / acceptedFiles.length) * 100);
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Not authenticated");
@@ -110,6 +133,7 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
         if (dbError) throw dbError;
       }
 
+      setUploadProgress(100);
       toast({
         title: "Upload complete",
         description: `Successfully processed ${files.length} invoice${files.length > 1 ? 's' : ''}`,
@@ -151,8 +175,11 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
       >
         <input {...getInputProps()} disabled={isUploading} />
         {isUploading ? (
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <Loader2 className="h-10 w-10 text-primary animate-spin mx-auto" />
+            <div className="w-full max-w-xs mx-auto">
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
             <p className="mt-2 text-sm text-gray-600">
               Processing file {currentFileIndex + 1} of {files.length}...
             </p>
@@ -165,11 +192,18 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
                 ? "Drop your invoice(s) here"
                 : `Drag and drop your invoice PDF${userPlan !== 'free' ? 's' : ''}, or click to select`}
             </p>
-            {userPlan === 'free' && (
-              <p className="mt-1 text-xs text-gray-500">
-                Free plan allows 1 file at a time. Upgrade to process multiple files.
+            <div className="mt-2 text-xs text-gray-500 space-y-1">
+              <p>
+                {userPlan === 'free' ? 'Free plan allows 1 file up to 25MB' : 
+                 userPlan === 'pro' ? 'Pro plan allows up to 10 files (100MB each)' :
+                 'Enterprise plan allows unlimited files up to 500MB each'}
               </p>
-            )}
+              {userPlan === 'free' && (
+                <p className="text-primary">
+                  Upgrade to process multiple files and larger sizes
+                </p>
+              )}
+            </div>
           </>
         )}
       </div>

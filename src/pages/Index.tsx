@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileUp, History } from "lucide-react";
+import { useFileUpload } from "@/components/invoices/upload/useFileUpload";
 
 type SubscriptionTier = 'free' | 'pro' | 'enterprise';
 
@@ -54,6 +55,7 @@ const Index = () => {
 
   const userPlan = (profile?.subscription_tier || 'free') as SubscriptionTier;
   const hasInvoices = invoices && invoices.length > 0;
+  const { handleDrop } = useFileUpload(userPlan);
 
   if (!user) {
     return (
@@ -89,8 +91,7 @@ const Index = () => {
               fileInput.onchange = (e) => {
                 const file = (e.target as HTMLInputElement).files?.[0];
                 if (file) {
-                  // Handle file upload
-                  console.log('File selected:', file);
+                  handleDrop([file]);
                 }
               };
             }

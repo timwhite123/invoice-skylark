@@ -73,28 +73,30 @@ export const NavLinks = () => {
       >
         <FileText className="w-4 h-4" />
         <span>Invoices</span>
-        {invoiceCount > 0 && profile?.subscription_tier === 'free' && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link 
-                  to="/pricing"
-                  className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full hover:bg-primary hover:text-white transition-colors group/pill flex items-center gap-1"
-                >
-                  {invoiceCount} processed
-                  <Plus className="w-3 h-3 opacity-0 group-hover/pill:opacity-100 transition-opacity" />
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Upgrade to process more invoices</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        {invoiceCount > 0 && profile?.subscription_tier !== 'free' && (
-          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-            {invoiceCount} processed
-          </span>
+        {invoiceCount > 0 && (
+          profile?.subscription_tier === 'free' ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link 
+                    to="/pricing"
+                    className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full hover:bg-primary hover:text-white transition-colors group/pill flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {invoiceCount} processed
+                    <Plus className="w-3 h-3 opacity-0 group-hover/pill:opacity-100 transition-opacity" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Upgrade to process more invoices</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+              {invoiceCount} processed
+            </span>
+          )
         )}
         <ChevronRight className="w-4 h-4 transition-transform duration-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0" />
       </Link>

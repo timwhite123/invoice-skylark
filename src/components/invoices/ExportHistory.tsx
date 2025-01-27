@@ -77,7 +77,7 @@ export const ExportHistory = () => {
   }
 
   return (
-    <div className="rounded-md border bg-white">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -101,7 +101,7 @@ export const ExportHistory = () => {
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className="bg-white">
           {exports?.map((exportRecord) => (
             <TableRow key={exportRecord.id}>
               <TableCell>

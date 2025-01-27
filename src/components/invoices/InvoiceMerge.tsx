@@ -9,6 +9,7 @@ import { FreePlanEmptyState } from "./FreePlanEmptyState";
 import { MergeDataSummary } from "./MergeDataSummary";
 import { MergeTable } from "./MergeTable";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useAuth } from "@/lib/auth";
 
 interface MergedInvoiceSummary {
   total_invoices: number;
@@ -62,6 +63,7 @@ export const InvoiceMerge = ({ userPlan }: InvoiceMergeProps) => {
   const [mergedData, setMergedData] = useState<MergedInvoiceData | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices'],
@@ -85,6 +87,15 @@ export const InvoiceMerge = ({ userPlan }: InvoiceMergeProps) => {
   };
 
   const handleMerge = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to merge invoices.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (selectedInvoices.length < 2) {
       toast({
         title: "Select at least two invoices",
@@ -113,6 +124,7 @@ export const InvoiceMerge = ({ userPlan }: InvoiceMergeProps) => {
           invoice_ids: selectedInvoices,
           export_type: 'merge',
           version: 1,
+          user_id: user.id // Add the user_id here
         });
 
       if (historyError) throw historyError;

@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FileUp, History } from "lucide-react";
 
+type SubscriptionTier = 'free' | 'pro' | 'enterprise';
+
 const Index = () => {
   const { user } = useAuth();
 
@@ -50,8 +52,8 @@ const Index = () => {
     enabled: !!user,
   });
 
-  // Default to 'free' if profile is not loaded or subscription_tier is null
-  const userPlan = profile?.subscription_tier || 'free';
+  // Ensure userPlan is properly typed as SubscriptionTier
+  const userPlan = (profile?.subscription_tier || 'free') as SubscriptionTier;
   const hasInvoices = invoices && invoices.length > 0;
 
   console.log('Current user plan:', userPlan); // Debug log

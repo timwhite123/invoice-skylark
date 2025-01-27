@@ -1,9 +1,10 @@
-import { Link, useLocation } from "react-router-dom";
-import { FileText, ChevronRight, Home, Plus } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { FileText, Home } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { NavLink } from "./NavLink";
+import { InvoiceCountPill } from "./InvoiceCountPill";
 
 export const NavLinks = () => {
   const location = useLocation();
@@ -50,56 +51,24 @@ export const NavLinks = () => {
 
   return (
     <div className="flex items-center space-x-2">
-      <Link
+      <NavLink
         to="/"
-        className={`text-sm group flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200
-          ${location.pathname === "/"
-            ? "text-primary bg-primary/5"
-            : "text-gray-600 hover:text-primary hover:bg-primary/5"
-          }`}
-      >
-        <Home className="w-4 h-4" />
-        <span>Home</span>
-        <ChevronRight className="w-4 h-4 transition-transform duration-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0" />
-      </Link>
+        icon={<Home className="w-4 h-4" />}
+        label="Home"
+        isActive={location.pathname === "/"}
+      />
 
-      <Link
+      <NavLink
         to="/invoices"
-        className={`text-sm group flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200
-          ${location.pathname === "/invoices"
-            ? "text-primary bg-primary/5"
-            : "text-gray-600 hover:text-primary hover:bg-primary/5"
-          }`}
+        icon={<FileText className="w-4 h-4" />}
+        label="Invoices"
+        isActive={location.pathname === "/invoices"}
       >
-        <FileText className="w-4 h-4" />
-        <span>Invoices</span>
-        {invoiceCount > 0 && (
-          profile?.subscription_tier === 'free' ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link 
-                    to="/pricing"
-                    className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full hover:bg-primary hover:text-white transition-colors group/pill flex items-center gap-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {invoiceCount} processed
-                    <Plus className="w-3 h-3 opacity-0 group-hover/pill:opacity-100 transition-opacity" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Upgrade to process more invoices</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-              {invoiceCount} processed
-            </span>
-          )
-        )}
-        <ChevronRight className="w-4 h-4 transition-transform duration-200 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0" />
-      </Link>
+        <InvoiceCountPill 
+          count={invoiceCount} 
+          subscriptionTier={profile?.subscription_tier} 
+        />
+      </NavLink>
     </div>
   );
 };

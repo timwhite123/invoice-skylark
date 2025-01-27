@@ -5,61 +5,89 @@ import { Progress } from "@/components/ui/progress";
 import { Check, ChevronRight, CreditCard, Star } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-// Types for profile data
+// Types for profile and subscription data
 type Profile = {
   full_name: string | null;
   email: string;
+  subscription_tier: string;
 };
 
-// Mock data for plan information - this would come from your subscription service
-const planData = {
-  plan: "Free",
-  renewalDate: new Date().toISOString(),
-  invoicesUsed: 3,
-  invoicesLimit: 5,
-  planFeatures: {
-    free: [
-      "Process up to 5 invoices/month",
-      "7-day PDF storage",
-      "Basic text export only",
-      "AI-based data extraction",
-      "Standard support",
-    ],
-    pro: [
-      "Process up to 150 invoices/month",
-      "30-day PDF storage",
-      "AI-based data extraction",
-      "Excel, CSV, JSON, and Text exports",
-      "Smart invoice merging",
-      "Priority support",
-    ],
-  },
+type SubscriptionTier = {
+  name: string;
+  stripe_price_id: string;
+  monthly_export_limit: number;
+  features: string[];
 };
 
 const Account = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [currentTier, setCurrentTier] = useState<SubscriptionTier | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [invoicesUsed, setInvoicesUsed] = useState(0);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    // Show success/error messages based on URL params
+    if (searchParams.get('success') === 'true') {
+      toast({
+        title: "Subscription updated",
+        description: "Thank you for your subscription! Your account has been updated.",
+      });
+    } else if (searchParams.get('canceled') === 'true') {
+      toast({
+        description: "Subscription update canceled. No changes were made.",
+      });
+    }
+  }, [searchParams, toast]);
+
+  useEffect(() => {
+    const fetchProfileAndSubscription = async () => {
       try {
         if (!user) return;
 
-        const { data, error } = await supabase
+        // Fetch profile data
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('full_name, email')
+          .select('full_name, email, subscription_tier')
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
+        if (profileError) throw profileError;
 
-        setProfile(data);
+        setProfile(profileData);
+
+        // Fetch current subscription tier details
+        if (profileData.subscription_tier) {
+          const { data: tierData, error: tierError } = await supabase
+            .from('subscription_tiers')
+            .select('*')
+            .eq('name', profileData.subscription_tier)
+            .single();
+
+          if (tierError) throw tierError;
+          setCurrentTier(tierData);
+        }
+
+        // Count invoices for the current month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const { count, error: invoiceError } = await supabase
+          .from('invoices')
+          .select('*', { count: 'exact' })
+          .eq('user_id', user.id)
+          .gte('created_at', startOfMonth.toISOString());
+
+        if (invoiceError) throw invoiceError;
+        setInvoicesUsed(count || 0);
+
       } catch (error: any) {
         toast({
           variant: "destructive",
@@ -71,11 +99,29 @@ const Account = () => {
       }
     };
 
-    fetchProfile();
+    fetchProfileAndSubscription();
   }, [user, toast]);
 
-  const isFreePlan = planData.plan === "Free";
-  const usagePercentage = (planData.invoicesUsed / planData.invoicesLimit) * 100;
+  const handleUpgradeClick = async (priceId: string) => {
+    try {
+      const response = await supabase.functions.invoke('create-checkout', {
+        body: { priceId },
+      });
+
+      if (response.error) throw response.error;
+      
+      const { url } = response.data;
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to start checkout process. Please try again.",
+      });
+    }
+  };
 
   const handleBillingPortal = () => {
     window.location.href = "https://billing.stripe.com/p/login/5kA00r5qu1HO5MsfYY";
@@ -91,6 +137,10 @@ const Account = () => {
       </div>
     );
   }
+
+  const usagePercentage = currentTier 
+    ? (invoicesUsed / currentTier.monthly_export_limit) * 100 
+    : 0;
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl space-y-8 animate-fadeIn">
@@ -119,9 +169,9 @@ const Account = () => {
         {/* Current Plan Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Current Plan: {planData.plan}</CardTitle>
+            <CardTitle>Current Plan: {currentTier?.name.charAt(0).toUpperCase() + currentTier?.name.slice(1)}</CardTitle>
             <CardDescription>
-              Your plan renews on {new Date(planData.renewalDate).toLocaleDateString()}
+              Your monthly invoice processing allowance
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -129,7 +179,7 @@ const Account = () => {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Monthly Invoice Usage</span>
-                <span>{planData.invoicesUsed} / {planData.invoicesLimit}</span>
+                <span>{invoicesUsed} / {currentTier?.monthly_export_limit}</span>
               </div>
               <Progress value={usagePercentage} className="h-2" />
             </div>
@@ -138,7 +188,7 @@ const Account = () => {
             <div className="space-y-4">
               <h3 className="font-medium">Your Plan Includes:</h3>
               <ul className="space-y-2">
-                {planData.planFeatures[isFreePlan ? 'free' : 'pro'].map((feature) => (
+                {currentTier?.features.map((feature) => (
                   <li key={feature} className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-primary" />
                     <span>{feature}</span>
@@ -156,7 +206,7 @@ const Account = () => {
         </Card>
 
         {/* Pro Plan CTA (shown only for free users) */}
-        {isFreePlan && (
+        {profile?.subscription_tier === 'free' && (
           <Card className="bg-brand-green-light border-brand-green/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -167,16 +217,33 @@ const Account = () => {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {planData.planFeatures.pro.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span>Process up to 150 invoices/month</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span>Excel, CSV, JSON, and Text exports</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span>Smart invoice merging</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span>Priority support</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span>30-day PDF storage</span>
+                </li>
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full sm:w-auto" onClick={() => navigate("/pricing")}>
+              <Button 
+                className="w-full sm:w-auto" 
+                onClick={() => handleUpgradeClick('price_1QfoT0LE6W0PtlHKSGyUhUtI')}
+              >
                 Upgrade Now
                 <ChevronRight className="ml-2" />
               </Button>

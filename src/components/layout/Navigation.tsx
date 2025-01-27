@@ -48,7 +48,7 @@ export const Navigation = () => {
       <div className="flex items-center space-x-8">
         <Link to="/" className="flex items-center">
           <img 
-            src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo_full.png" 
+            src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg" 
             alt="InvoiceJet.ai Logo" 
             className="h-8" 
           />

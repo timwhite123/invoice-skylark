@@ -6,12 +6,14 @@ interface ExtractedInformationProps {
   extractedData: Record<string, any>;
   userPlan?: 'free' | 'pro' | 'enterprise';
   onExport: (format: string) => void;
+  selectedInvoices?: string[];
 }
 
 export const ExtractedInformation = ({ 
   extractedData, 
   userPlan = 'free',
-  onExport 
+  onExport,
+  selectedInvoices = []
 }: ExtractedInformationProps) => {
   return (
     <Card className="p-4 bg-white">
@@ -39,6 +41,7 @@ export const ExtractedInformation = ({
             <ExportMenu 
               userPlan={userPlan}
               onExport={onExport}
+              selectedInvoices={selectedInvoices}
             />
           </div>
         </div>

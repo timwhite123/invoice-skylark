@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { FreePlanEmptyState } from "./FreePlanEmptyState";
 import { MergeDataSummary } from "./MergeDataSummary";
 import { MergeTable } from "./MergeTable";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface MergedInvoiceSummary {
   total_invoices: number;
@@ -146,18 +147,16 @@ export const InvoiceMerge = ({ userPlan }: InvoiceMergeProps) => {
 
   if (!invoices?.length) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 space-y-4 text-center border-2 border-dashed rounded-lg bg-background/50">
-        <Upload className="h-12 w-12 text-muted-foreground" />
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">No invoices found</h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            Upload some invoices first before using the merge feature.
-          </p>
-        </div>
-        <Button onClick={() => navigate("/")}>
-          Upload Invoices
-        </Button>
-      </div>
+      <EmptyState
+        title="No Invoices Found"
+        description="Upload some invoices first before using the merge feature."
+        icon={<Upload className="w-full h-full" />}
+        action={{
+          label: "Upload Invoices",
+          onClick: () => navigate("/")
+        }}
+        className="bg-white rounded-lg shadow-sm border border-gray-100 p-12"
+      />
     );
   }
 
@@ -168,6 +167,7 @@ export const InvoiceMerge = ({ userPlan }: InvoiceMergeProps) => {
         <Button 
           onClick={handleMerge}
           disabled={selectedInvoices.length < 2 || isMerging}
+          className="hover:scale-105 transition-transform"
         >
           {isMerging ? (
             <>

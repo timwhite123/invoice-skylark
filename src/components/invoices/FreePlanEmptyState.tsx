@@ -1,10 +1,21 @@
-import { Crown, Lock, ArrowRight } from "lucide-react";
+import { Crown, Lock, ArrowRight, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 export const FreePlanEmptyState = () => {
   const navigate = useNavigate();
   
+  const handleUploadClick = () => {
+    // Create and trigger file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.pdf';
+    fileInput.click();
+    
+    // Navigate to upload tab
+    navigate('/?tab=upload');
+  };
+
   return (
     <div className="relative overflow-hidden">
       <div className="flex flex-col items-center justify-center p-16 space-y-8 text-center border-2 border-dashed rounded-lg bg-gradient-to-b from-background to-background/50">
@@ -58,11 +69,13 @@ export const FreePlanEmptyState = () => {
             <ArrowRight className="h-4 w-4" />
           </Button>
           <Button 
-            onClick={() => navigate("/")} 
+            onClick={handleUploadClick} 
             variant="outline"
             size="lg"
+            className="gap-2"
           >
-            Back to Home
+            Upload Invoice
+            <Upload className="h-4 w-4" />
           </Button>
         </div>
       </div>

@@ -32,12 +32,14 @@ export const InvoicePreview = ({
   const [isLoading, setIsLoading] = useState(true);
   const [showMappingSuggestions, setShowMappingSuggestions] = useState(true);
   const [isMapperMinimized, setIsMapperMinimized] = useState(false);
+  const [mappingsAccepted, setMappingsAccepted] = useState(false);
   const { toast } = useToast();
 
   const handleAcceptMappings = (mappings: Record<string, string>) => {
     console.log('Accepted mappings:', mappings);
     setShowMappingSuggestions(false);
     setIsMapperMinimized(true);
+    setMappingsAccepted(true);
     toast({
       title: "Mappings saved",
       description: "Field mappings have been saved successfully",
@@ -72,11 +74,14 @@ export const InvoicePreview = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsMapperMinimized(false)}
+              onClick={() => {
+                setIsMapperMinimized(false);
+                setShowMappingSuggestions(true);
+              }}
               className="flex items-center gap-2"
             >
               <ChevronDown className="h-4 w-4" />
-              Show Field Mappings
+              {mappingsAccepted ? "Update Field Mappings" : "Show Field Mappings"}
             </Button>
           ) : (
             <div className="space-y-4">

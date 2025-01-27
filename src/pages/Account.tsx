@@ -114,73 +114,76 @@ const Account = () => {
         </CardContent>
       </Card>
 
-      {/* Subscription Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Current Plan: {planData.plan}</CardTitle>
-          <CardDescription>
-            Your plan renews on {new Date(planData.renewalDate).toLocaleDateString()}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Usage Progress */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Monthly Invoice Usage</span>
-              <span>{planData.invoicesUsed} / {planData.invoicesLimit}</span>
-            </div>
-            <Progress value={usagePercentage} className="h-2" />
-          </div>
-
-          {/* Current Plan Features */}
-          <div className="space-y-4">
-            <h3 className="font-medium">Your Plan Includes:</h3>
-            <ul className="space-y-2">
-              {planData.planFeatures[isFreePlan ? 'free' : 'pro'].map((feature) => (
-                <li key={feature} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row gap-4">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={handleBillingPortal}>
-            <CreditCard className="mr-2" />
-            Manage Billing
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* Pro Plan CTA (shown only for free users) */}
-      {isFreePlan && (
-        <Card className="bg-brand-green-light border-brand-green/20">
+      {/* Subscription and Pro Plan Section - Two Column Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Current Plan Section */}
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5" />
-              Unlock Pro Features
-            </CardTitle>
-            <CardDescription>Get access to advanced features and more invoices per month</CardDescription>
+            <CardTitle>Current Plan: {planData.plan}</CardTitle>
+            <CardDescription>
+              Your plan renews on {new Date(planData.renewalDate).toLocaleDateString()}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {planData.planFeatures.pro.map((feature) => (
-                <li key={feature} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
+          <CardContent className="space-y-6">
+            {/* Usage Progress */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Monthly Invoice Usage</span>
+                <span>{planData.invoicesUsed} / {planData.invoicesLimit}</span>
+              </div>
+              <Progress value={usagePercentage} className="h-2" />
+            </div>
+
+            {/* Current Plan Features */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Your Plan Includes:</h3>
+              <ul className="space-y-2">
+                {planData.planFeatures[isFreePlan ? 'free' : 'pro'].map((feature) => (
+                  <li key={feature} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </CardContent>
-          <CardFooter>
-            <Button className="w-full sm:w-auto" onClick={() => navigate("/pricing")}>
-              Upgrade Now
-              <ChevronRight className="ml-2" />
+          <CardFooter className="flex flex-col sm:flex-row gap-4">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={handleBillingPortal}>
+              <CreditCard className="mr-2" />
+              Manage Billing
             </Button>
           </CardFooter>
         </Card>
-      )}
+
+        {/* Pro Plan CTA (shown only for free users) */}
+        {isFreePlan && (
+          <Card className="bg-brand-green-light border-brand-green/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5" />
+                Unlock Pro Features
+              </CardTitle>
+              <CardDescription>Get access to advanced features and more invoices per month</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {planData.planFeatures.pro.map((feature) => (
+                  <li key={feature} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full sm:w-auto" onClick={() => navigate("/pricing")}>
+                Upgrade Now
+                <ChevronRight className="ml-2" />
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

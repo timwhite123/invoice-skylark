@@ -91,15 +91,20 @@ export const ExportMenu = ({ userPlan, onExport, isMerged = false, selectedInvoi
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       // Log the export in export_history
       const { error: historyError } = await supabase
         .from('export_history')
         .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: user.id,
           invoice_ids: selectedInvoices,
           export_type: 'text',
           export_format: format,
           file_name: a.download,
+          version: 1, // Adding the required version field
         });
 
       if (historyError) throw historyError;

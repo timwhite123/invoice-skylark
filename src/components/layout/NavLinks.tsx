@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
-import { FileText, ChevronRight, Home } from "lucide-react";
+import { FileText, ChevronRight, Home, Plus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const NavLinks = () => {
   const location = useLocation();
@@ -24,6 +25,25 @@ export const NavLinks = () => {
         return 0;
       }
       return count || 0;
+    },
+    enabled: !!user,
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      return data;
     },
     enabled: !!user,
   });
@@ -53,7 +73,25 @@ export const NavLinks = () => {
       >
         <FileText className="w-4 h-4" />
         <span>Invoices</span>
-        {invoiceCount > 0 && (
+        {invoiceCount > 0 && profile?.subscription_tier === 'free' && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link 
+                  to="/pricing"
+                  className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full hover:bg-primary hover:text-white transition-colors group/pill flex items-center gap-1"
+                >
+                  {invoiceCount} processed
+                  <Plus className="w-3 h-3 opacity-0 group-hover/pill:opacity-100 transition-opacity" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Upgrade to process more invoices</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+        {invoiceCount > 0 && profile?.subscription_tier !== 'free' && (
           <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
             {invoiceCount} processed
           </span>

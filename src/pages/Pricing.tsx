@@ -3,9 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 const PricingPage = () => {
   const [isAnnual, setIsAnnual] = useState(false);
+  const { user } = useAuth();
 
   const plans = [
     {
@@ -23,6 +26,10 @@ const PricingPage = () => {
       buttonText: "Current Plan",
       popular: false,
       buttonVariant: "outline" as const,
+      checkoutLinks: {
+        monthly: null,
+        annual: null,
+      },
     },
     {
       name: "Pro",
@@ -40,6 +47,10 @@ const PricingPage = () => {
       buttonText: "Upgrade to Pro",
       popular: true,
       buttonVariant: "default" as const,
+      checkoutLinks: {
+        monthly: "https://buy.stripe.com/8wMbLC3if09ibfi003",
+        annual: "https://buy.stripe.com/3cs16Y7yv8FOgzC004",
+      },
     },
     {
       name: "Enterprise",
@@ -58,8 +69,24 @@ const PricingPage = () => {
       buttonText: "Get Started",
       popular: false,
       buttonVariant: "default" as const,
+      checkoutLinks: {
+        monthly: "https://buy.stripe.com/00geXO7yvaNWeru5kl",
+        annual: "https://buy.stripe.com/bIY3f6g514py1EIdQS",
+      },
     },
   ];
+
+  const handleUpgrade = (plan: typeof plans[0]) => {
+    if (!user) {
+      toast.error("Please sign in to upgrade your plan");
+      return;
+    }
+
+    const checkoutLink = isAnnual ? plan.checkoutLinks.annual : plan.checkoutLinks.monthly;
+    if (checkoutLink) {
+      window.location.href = checkoutLink;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -134,6 +161,7 @@ const PricingPage = () => {
                 <Button 
                   className="w-full"
                   variant={plan.buttonVariant}
+                  onClick={() => handleUpgrade(plan)}
                 >
                   {plan.buttonText}
                 </Button>

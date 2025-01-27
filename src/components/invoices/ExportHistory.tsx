@@ -33,9 +33,17 @@ export const ExportHistory = () => {
       const { data, error } = await supabase
         .from('export_history')
         .select('*')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        toast({
+          title: "Error fetching export history",
+          description: error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
       return data as ExportRecord[];
     }
   });

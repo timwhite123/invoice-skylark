@@ -6,6 +6,7 @@ import { Check, ChevronRight, CreditCard, Star } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 // Types for profile data
 type Profile = {
@@ -13,36 +14,37 @@ type Profile = {
   email: string;
 };
 
+// Mock data for plan information - this would come from your subscription service
+const planData = {
+  plan: "Free",
+  renewalDate: new Date().toISOString(),
+  invoicesUsed: 3,
+  invoicesLimit: 5,
+  planFeatures: {
+    free: [
+      "Process up to 5 invoices/month",
+      "7-day PDF storage",
+      "Basic text export only",
+      "AI-based data extraction",
+      "Standard support",
+    ],
+    pro: [
+      "Process up to 150 invoices/month",
+      "30-day PDF storage",
+      "AI-based data extraction",
+      "Excel, CSV, JSON, and Text exports",
+      "Smart invoice merging",
+      "Priority support",
+    ],
+  },
+};
+
 const Account = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Mock data for plan information - this would come from your subscription service
-  const planData = {
-    plan: "Free",
-    renewalDate: new Date().toISOString(),
-    invoicesUsed: 3,
-    invoicesLimit: 5,
-    planFeatures: {
-      free: [
-        "Process up to 5 invoices/month",
-        "7-day PDF storage",
-        "Basic text export only",
-        "AI-based data extraction",
-        "Standard support",
-      ],
-      pro: [
-        "Process up to 150 invoices/month",
-        "30-day PDF storage",
-        "AI-based data extraction",
-        "Excel, CSV, JSON, and Text exports",
-        "Smart invoice merging",
-        "Priority support",
-      ],
-    },
-  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -172,7 +174,7 @@ const Account = () => {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto" onClick={() => navigate("/pricing")}>
               Upgrade Now
               <ChevronRight className="ml-2" />
             </Button>

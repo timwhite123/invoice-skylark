@@ -62,7 +62,7 @@ export const FreePlanEmptyState = () => {
             variant="outline"
             size="lg"
           >
-            Back to Upload
+            Back to Home
           </Button>
         </div>
       </div>

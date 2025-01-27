@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FieldMappingSuggestions } from '../field-mapping/FieldMappingSuggestions';
 import { useToast } from "@/hooks/use-toast";
 import { ExportMenu } from './ExportMenu';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface InvoicePreviewProps {
   fileUrl: string | null;
@@ -115,27 +116,35 @@ export const InvoicePreview = ({
             </Card>
 
             {/* Extracted Data */}
-            <Card className="p-4 bg-white relative">
-              <h3 className="text-lg font-semibold mb-4">Extracted Information</h3>
-              <div className="space-y-4 mb-16"> {/* Added margin bottom for export button */}
-                {extractedData && Object.entries(extractedData).map(([key, value]) => (
-                  <div key={key} className="group">
-                    <div className="text-sm text-gray-500 capitalize">
-                      {key.replace(/_/g, ' ')}
-                    </div>
-                    <div className="font-medium">
-                      {key.includes('amount') || key.includes('total')
-                        ? `${extractedData.currency || '$'}${Number(value).toFixed(2)}`
-                        : value || 'N/A'}
-                    </div>
+            <Card className="p-4 bg-white">
+              <div className="flex flex-col h-full">
+                <h3 className="text-lg font-semibold mb-4">Extracted Information</h3>
+                <ScrollArea className="flex-grow h-[400px] pr-4">
+                  <div className="space-y-3">
+                    {extractedData && Object.entries(extractedData).map(([key, value]) => (
+                      <div key={key} className="group border-b border-gray-100 pb-2">
+                        <div className="text-sm text-gray-500 capitalize">
+                          {key.replace(/_/g, ' ')}
+                        </div>
+                        <div className="font-medium">
+                          {key.includes('amount') || key.includes('total')
+                            ? `${extractedData.currency || '$'}${Number(value).toFixed(2)}`
+                            : value || 'N/A'}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="absolute bottom-4 right-4">
-                <ExportMenu 
-                  userPlan={userPlan}
-                  onExport={handleExport}
-                />
+                </ScrollArea>
+                
+                {/* Export Section - Made more prominent */}
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <div className="flex justify-end">
+                    <ExportMenu 
+                      userPlan={userPlan}
+                      onExport={handleExport}
+                    />
+                  </div>
+                </div>
               </div>
             </Card>
           </div>

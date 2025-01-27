@@ -1,24 +1,14 @@
 import React, { useState } from 'react';
-import { Card } from "@/components/ui/card";
-import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { FieldMappingSuggestions } from '../field-mapping/FieldMappingSuggestions';
 import { useToast } from "@/hooks/use-toast";
-import { ExportMenu } from './ExportMenu';
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { DocumentPreview } from './DocumentPreview';
+import { ExtractedInformation } from './ExtractedInformation';
 
 interface InvoicePreviewProps {
   fileUrl: string | null;
-  extractedData?: {
-    vendor_name?: string;
-    invoice_number?: string;
-    invoice_date?: string;
-    due_date?: string;
-    total_amount?: number;
-    currency?: string;
-    tax_amount?: number;
-    subtotal?: number;
-  };
+  extractedData?: Record<string, any>;
   onCancel: () => void;
   userPlan?: 'free' | 'pro' | 'enterprise';
 }
@@ -54,10 +44,6 @@ export const InvoicePreview = ({
     });
   };
 
-  const handleCancel = () => {
-    onCancel();
-  };
-
   if (!fileUrl) return null;
 
   return (
@@ -66,7 +52,7 @@ export const InvoicePreview = ({
         <FieldMappingSuggestions
           extractedData={extractedData || {}}
           onAccept={handleAcceptMappings}
-          onCancel={handleCancel}
+          onCancel={onCancel}
         />
       ) : (
         <div className="space-y-6">
@@ -97,61 +83,22 @@ export const InvoicePreview = ({
               <FieldMappingSuggestions
                 extractedData={extractedData || {}}
                 onAccept={handleAcceptMappings}
-                onCancel={handleCancel}
+                onCancel={onCancel}
               />
             </div>
           )}
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Extracted Data - Now on the left */}
-            <Card className="p-4 bg-white">
-              <div className="flex flex-col h-full">
-                <h3 className="text-lg font-semibold mb-4">Extracted Information</h3>
-                <ScrollArea className="flex-grow h-[400px] pr-4">
-                  <div className="space-y-3">
-                    {extractedData && Object.entries(extractedData).map(([key, value]) => (
-                      <div key={key} className="group border-b border-gray-100 pb-2">
-                        <div className="text-sm text-gray-500 capitalize">
-                          {key.replace(/_/g, ' ')}
-                        </div>
-                        <div className="font-medium">
-                          {key.includes('amount') || key.includes('total')
-                            ? `${extractedData.currency || '$'}${Number(value).toFixed(2)}`
-                            : value || 'N/A'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-                
-                {/* Export Section */}
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <div className="flex justify-end">
-                    <ExportMenu 
-                      userPlan={userPlan}
-                      onExport={handleExport}
-                    />
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* PDF Preview - Now on the right */}
-            <Card className="p-4 bg-white">
-              <h3 className="text-lg font-semibold mb-4">Document Preview</h3>
-              <div className="relative aspect-[3/4] w-full bg-gray-50 rounded-lg overflow-hidden">
-                {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                )}
-                <iframe
-                  src={`${fileUrl}#toolbar=0`}
-                  className="w-full h-full"
-                  onLoad={() => setIsLoading(false)}
-                />
-              </div>
-            </Card>
+            <ExtractedInformation
+              extractedData={extractedData || {}}
+              userPlan={userPlan}
+              onExport={handleExport}
+            />
+            <DocumentPreview
+              fileUrl={fileUrl}
+              isLoading={isLoading}
+              onLoad={() => setIsLoading(false)}
+            />
           </div>
         </div>
       )}

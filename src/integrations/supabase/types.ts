@@ -62,7 +62,10 @@ export type Database = {
       export_history: {
         Row: {
           created_at: string | null
+          export_format: string | null
           export_type: string
+          file_name: string | null
+          file_size: number | null
           file_url: string | null
           id: string
           invoice_ids: string[]
@@ -72,7 +75,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          export_format?: string | null
           export_type: string
+          file_name?: string | null
+          file_size?: number | null
           file_url?: string | null
           id?: string
           invoice_ids: string[]
@@ -82,7 +88,10 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          export_format?: string | null
           export_type?: string
+          file_name?: string | null
+          file_size?: number | null
           file_url?: string | null
           id?: string
           invoice_ids?: string[]

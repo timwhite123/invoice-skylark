@@ -18,11 +18,13 @@ import {
 } from "@/components/ui/pagination";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import { Search, Trash2, Merge, ArrowUpDown, Tag } from "lucide-react";
+import { Search, Trash2, Merge, ArrowUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TagManager } from "@/components/invoices/TagManager";
 import { ExportMenu } from "@/components/invoices/ExportMenu";
 import { Badge } from "@/components/ui/badge";
+import { ExportHistory } from "@/components/invoices/ExportHistory";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Mock user plan for now - will be replaced with actual user plan from Supabase
 const userPlan = "free"; // "free" | "pro" | "enterprise"
@@ -160,52 +162,60 @@ const Invoices = () => {
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Invoice History</h1>
-        <div className="flex items-center gap-4">
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search invoices or tags..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          {selectedInvoices.length > 0 && (
-            <div className="flex items-center gap-2">
-              <ExportMenu userPlan={userPlan} onExport={handleExport} />
-              {selectedInvoices.length >= 2 && (
-                <>
-                  <Button 
-                    variant="outline" 
-                    className="gap-2"
-                    onClick={handleMerge}
-                    disabled={userPlan === "free"}
-                  >
-                    <Merge className="h-4 w-4" />
-                    Merge
-                  </Button>
-                  <ExportMenu 
-                    userPlan={userPlan} 
-                    onExport={handleExport} 
-                    isMerged={true}
-                  />
-                </>
-              )}
-              <Button 
-                variant="outline" 
-                className="gap-2 text-destructive"
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
-            </div>
-          )}
-        </div>
+        <h1 className="text-3xl font-bold">Invoices</h1>
       </div>
 
-      <ScrollArea className="h-[600px] rounded-md border relative">
+      <Tabs defaultValue="invoices" className="w-full">
+        <TabsList>
+          <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="export-history">Export History</TabsTrigger>
+        </TabsList>
+        <TabsContent value="invoices" className="mt-6">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search invoices or tags..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              {selectedInvoices.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <ExportMenu userPlan={userPlan} onExport={handleExport} />
+                  {selectedInvoices.length >= 2 && (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        className="gap-2"
+                        onClick={handleMerge}
+                        disabled={userPlan === "free"}
+                      >
+                        <Merge className="h-4 w-4" />
+                        Merge
+                      </Button>
+                      <ExportMenu 
+                        userPlan={userPlan} 
+                        onExport={handleExport} 
+                        isMerged={true}
+                      />
+                    </>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    className="gap-2 text-destructive"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <ScrollArea className="h-[600px] rounded-md border relative">
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10 border-b">
             <TableRow className="hover:bg-transparent">
@@ -294,9 +304,9 @@ const Invoices = () => {
             ))}
           </TableBody>
         </Table>
-      </ScrollArea>
+            </ScrollArea>
 
-      <Pagination>
+            <Pagination>
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
@@ -323,7 +333,13 @@ const Invoices = () => {
             />
           </PaginationItem>
         </PaginationContent>
-      </Pagination>
+            </Pagination>
+          </div>
+        </TabsContent>
+        <TabsContent value="export-history" className="mt-6">
+          <ExportHistory />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

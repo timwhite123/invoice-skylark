@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { invoiceTemplate } from './template.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,20 +43,15 @@ serve(async (req) => {
 
     const requestBody = {
       url: signedUrl,
-      template: JSON.stringify(invoiceTemplate), // Convert template object to string
       async: false,
       name: "invoice.pdf",
-      pages: "",
-      password: "",
-      inline: true,
-      profiles: true,
-      ocr: true,
-      language: "eng"
+      language: "eng",
+      pages: ""
     }
 
     console.log('Sending request to PDF.co:', JSON.stringify(requestBody))
 
-    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
+    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/ai/invoiceparser', {
       method: 'POST',
       headers: {
         'x-api-key': pdfcoApiKey,
@@ -79,26 +73,27 @@ serve(async (req) => {
     }
 
     // Extract fields from the parse result
-    const fields = parseResult.fields || parseResult.body?.fields || []
+    // The AI Invoice Parser returns data in a different format than document parser
+    const fields = parseResult.body || {}
     console.log('Extracted fields:', fields)
 
     const transformedData = {
-      vendor_name: fields.find((f: any) => f.name === 'vendor_name')?.value?.trim() || '',
-      invoice_number: fields.find((f: any) => f.name === 'invoice_number')?.value?.trim() || '',
-      invoice_date: fields.find((f: any) => f.name === 'invoice_date')?.value?.trim() || null,
-      due_date: fields.find((f: any) => f.name === 'due_date')?.value?.trim() || null,
-      total_amount: parseFloat(fields.find((f: any) => f.name === 'total_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      currency: fields.find((f: any) => f.name === 'currency')?.value?.trim() || 'USD',
-      tax_amount: parseFloat(fields.find((f: any) => f.name === 'tax_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      subtotal: parseFloat(fields.find((f: any) => f.name === 'subtotal')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      payment_terms: fields.find((f: any) => f.name === 'payment_terms')?.value?.trim() || '',
-      purchase_order_number: fields.find((f: any) => f.name === 'purchase_order_number')?.value?.trim() || '',
-      billing_address: fields.find((f: any) => f.name === 'billing_address')?.value?.trim() || '',
-      shipping_address: fields.find((f: any) => f.name === 'shipping_address')?.value?.trim() || '',
-      payment_method: fields.find((f: any) => f.name === 'payment_method')?.value?.trim() || '',
-      discount_amount: parseFloat(fields.find((f: any) => f.name === 'discount_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      additional_fees: parseFloat(fields.find((f: any) => f.name === 'additional_fees')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      notes: fields.find((f: any) => f.name === 'notes')?.value?.trim() || '',
+      vendor_name: fields.vendor?.name || '',
+      invoice_number: fields.invoiceId || '',
+      invoice_date: fields.invoiceDate || null,
+      due_date: fields.dueDate || null,
+      total_amount: parseFloat(fields.total?.toString() || '0'),
+      currency: fields.currency || 'USD',
+      tax_amount: parseFloat(fields.tax?.toString() || '0'),
+      subtotal: parseFloat(fields.subtotal?.toString() || '0'),
+      payment_terms: fields.paymentTerms || '',
+      purchase_order_number: fields.purchaseOrder || '',
+      billing_address: fields.billingAddress?.full || '',
+      shipping_address: fields.shippingAddress?.full || '',
+      payment_method: fields.paymentMethod || '',
+      discount_amount: parseFloat(fields.discount?.toString() || '0'),
+      additional_fees: parseFloat(fields.additionalCharges?.toString() || '0'),
+      notes: fields.notes || '',
     }
 
     console.log('Transformed data:', transformedData)

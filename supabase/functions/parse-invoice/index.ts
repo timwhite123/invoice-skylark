@@ -46,7 +46,8 @@ serve(async (req) => {
     }
 
     console.log('Generated signed URL:', signedUrl)
-    console.log('Using template:', invoiceTemplate)
+    const stringifiedTemplate = JSON.stringify(invoiceTemplate)
+    console.log('Using stringified template:', stringifiedTemplate)
 
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
@@ -57,7 +58,7 @@ serve(async (req) => {
       body: JSON.stringify({
         url: signedUrl,
         async: false,
-        template: invoiceTemplate,
+        template: stringifiedTemplate,
         outputFormat: 'JSON'
       })
     })

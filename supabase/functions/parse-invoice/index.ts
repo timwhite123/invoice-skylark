@@ -19,6 +19,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!fileUrl || !pdfcoApiKey) {
+      console.error('Missing required parameters:', { fileUrl: !!fileUrl, pdfcoApiKey: !!pdfcoApiKey })
       return new Response(
         JSON.stringify({ error: !fileUrl ? 'No file URL provided' : 'PDF.co API key not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: !fileUrl ? 400 : 500 }
@@ -45,7 +46,11 @@ serve(async (req) => {
       url: signedUrl,
       template: JSON.stringify(invoiceTemplate),
       async: false,
-      name: "invoice.pdf"
+      name: "invoice.pdf",
+      pages: "1-",
+      password: "",
+      inline: false,
+      profiles: false
     }
 
     console.log('Sending request to PDF.co:', JSON.stringify(requestBody))
@@ -71,24 +76,30 @@ serve(async (req) => {
       )
     }
 
+    // Extract fields from the parse result
+    const fields = parseResult.fields || parseResult.body?.fields || []
+    console.log('Extracted fields:', fields)
+
     const transformedData = {
-      vendor_name: parseResult.fields?.find((f: any) => f.name === 'vendor_name')?.value?.trim() || '',
-      invoice_number: parseResult.fields?.find((f: any) => f.name === 'invoice_number')?.value?.trim() || '',
-      invoice_date: parseResult.fields?.find((f: any) => f.name === 'invoice_date')?.value?.trim() || null,
-      due_date: parseResult.fields?.find((f: any) => f.name === 'due_date')?.value?.trim() || null,
-      total_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'total_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      currency: parseResult.fields?.find((f: any) => f.name === 'currency')?.value?.trim() || 'USD',
-      tax_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'tax_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      subtotal: parseFloat(parseResult.fields?.find((f: any) => f.name === 'subtotal')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      payment_terms: parseResult.fields?.find((f: any) => f.name === 'payment_terms')?.value?.trim() || '',
-      purchase_order_number: parseResult.fields?.find((f: any) => f.name === 'purchase_order_number')?.value?.trim() || '',
-      billing_address: parseResult.fields?.find((f: any) => f.name === 'billing_address')?.value?.trim() || '',
-      shipping_address: parseResult.fields?.find((f: any) => f.name === 'shipping_address')?.value?.trim() || '',
-      payment_method: parseResult.fields?.find((f: any) => f.name === 'payment_method')?.value?.trim() || '',
-      discount_amount: parseFloat(parseResult.fields?.find((f: any) => f.name === 'discount_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      additional_fees: parseFloat(parseResult.fields?.find((f: any) => f.name === 'additional_fees')?.value?.replace(/[^0-9.]/g, '') || '0'),
-      notes: parseResult.fields?.find((f: any) => f.name === 'notes')?.value?.trim() || '',
+      vendor_name: fields.find((f: any) => f.name === 'vendor_name')?.value?.trim() || '',
+      invoice_number: fields.find((f: any) => f.name === 'invoice_number')?.value?.trim() || '',
+      invoice_date: fields.find((f: any) => f.name === 'invoice_date')?.value?.trim() || null,
+      due_date: fields.find((f: any) => f.name === 'due_date')?.value?.trim() || null,
+      total_amount: parseFloat(fields.find((f: any) => f.name === 'total_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      currency: fields.find((f: any) => f.name === 'currency')?.value?.trim() || 'USD',
+      tax_amount: parseFloat(fields.find((f: any) => f.name === 'tax_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      subtotal: parseFloat(fields.find((f: any) => f.name === 'subtotal')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      payment_terms: fields.find((f: any) => f.name === 'payment_terms')?.value?.trim() || '',
+      purchase_order_number: fields.find((f: any) => f.name === 'purchase_order_number')?.value?.trim() || '',
+      billing_address: fields.find((f: any) => f.name === 'billing_address')?.value?.trim() || '',
+      shipping_address: fields.find((f: any) => f.name === 'shipping_address')?.value?.trim() || '',
+      payment_method: fields.find((f: any) => f.name === 'payment_method')?.value?.trim() || '',
+      discount_amount: parseFloat(fields.find((f: any) => f.name === 'discount_amount')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      additional_fees: parseFloat(fields.find((f: any) => f.name === 'additional_fees')?.value?.replace(/[^0-9.]/g, '') || '0'),
+      notes: fields.find((f: any) => f.name === 'notes')?.value?.trim() || '',
     }
+
+    console.log('Transformed data:', transformedData)
 
     return new Response(
       JSON.stringify(transformedData),

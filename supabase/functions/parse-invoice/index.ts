@@ -7,7 +7,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -21,14 +20,8 @@ serve(async (req) => {
     if (!fileUrl || !pdfcoApiKey) {
       console.error('Missing required parameters:', { fileUrl: !!fileUrl, pdfcoApiKey: !!pdfcoApiKey })
       return new Response(
-        JSON.stringify({ 
-          error: !fileUrl ? 'No file URL provided' : 'PDF.co API key not configured',
-          details: { fileUrl: !!fileUrl, pdfcoApiKey: !!pdfcoApiKey }
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: !fileUrl ? 400 : 500 
-        }
+        JSON.stringify({ error: !fileUrl ? 'No file URL provided' : 'PDF.co API key not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: !fileUrl ? 400 : 500 }
       )
     }
 
@@ -52,32 +45,32 @@ serve(async (req) => {
     console.log('Generated signed URL:', signedUrl)
 
     // Create a more detailed template for invoice parsing
-    const template = JSON.stringify({
+    const template = {
       "profiles": [{
         "name": "invoice",
         "fields": [
           {
-            "name": "vendor",
+            "name": "vendor_name",
             "type": "field",
-            "regex": "(?:Company|Vendor|From|Business)\\s*(?:Name)?:\\s*([^\\n]+)"
+            "regex": "(?:Company|Vendor|From|Business|Supplier)\\s*(?:Name)?:\\s*([^\\n]+)"
           },
           {
-            "name": "invoiceId",
+            "name": "invoice_number",
             "type": "field",
             "regex": "(?:Invoice|Reference|Document)\\s*(?:Number|ID|#)?:\\s*([^\\n]+)"
           },
           {
-            "name": "invoiceDate",
+            "name": "invoice_date",
             "type": "field",
             "regex": "(?:Invoice|Document)\\s*Date:\\s*([^\\n]+)"
           },
           {
-            "name": "dueDate",
+            "name": "due_date",
             "type": "field",
             "regex": "Due\\s*Date:\\s*([^\\n]+)"
           },
           {
-            "name": "total",
+            "name": "total_amount",
             "type": "field",
             "regex": "(?:Total|Amount Due|Grand Total):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
           },
@@ -87,7 +80,7 @@ serve(async (req) => {
             "regex": "(?:Subtotal|Net Amount):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
           },
           {
-            "name": "tax",
+            "name": "tax_amount",
             "type": "field",
             "regex": "(?:Tax|VAT|GST):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
           },
@@ -95,40 +88,12 @@ serve(async (req) => {
             "name": "currency",
             "type": "field",
             "regex": "Currency:\\s*([A-Z]{3})"
-          },
-          {
-            "name": "paymentTerms",
-            "type": "field",
-            "regex": "(?:Payment Terms|Terms):\\s*([^\\n]+)"
-          },
-          {
-            "name": "purchaseOrder",
-            "type": "field",
-            "regex": "(?:PO|Purchase Order)\\s*(?:Number|#)?:\\s*([^\\n]+)"
-          },
-          {
-            "name": "billingAddress",
-            "type": "field",
-            "regex": "(?:Bill(?:ing)?|Invoice)\\s*(?:To|Address):\\s*([^\\n]+(?:\\n[^\\n]+)*)"
-          },
-          {
-            "name": "shippingAddress",
-            "type": "field",
-            "regex": "(?:Ship(?:ping)?|Deliver)\\s*(?:To|Address):\\s*([^\\n]+(?:\\n[^\\n]+)*)"
           }
         ]
       }]
-    })
-
-    // PDF.co API request body
-    const requestBody = {
-      url: signedUrl,
-      async: false,
-      inline: true,
-      template
     }
 
-    console.log('Sending request to PDF.co:', JSON.stringify(requestBody))
+    console.log('Sending request to PDF.co with template:', JSON.stringify(template))
 
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
@@ -136,7 +101,11 @@ serve(async (req) => {
         'x-api-key': pdfcoApiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        url: signedUrl,
+        async: false,
+        template: JSON.stringify(template)
+      })
     })
 
     console.log('PDF.co response status:', parseResponse.status)
@@ -156,21 +125,21 @@ serve(async (req) => {
     console.log('Extracted fields:', fields)
 
     const transformedData = {
-      vendor_name: fields.vendor?.name || '',
-      invoice_number: fields.invoiceId || '',
-      invoice_date: fields.invoiceDate || null,
-      due_date: fields.dueDate || null,
-      total_amount: parseFloat(fields.total?.toString() || '0'),
+      vendor_name: fields.vendor_name || '',
+      invoice_number: fields.invoice_number || '',
+      invoice_date: fields.invoice_date || null,
+      due_date: fields.due_date || null,
+      total_amount: parseFloat(fields.total_amount?.toString() || '0'),
       currency: fields.currency || 'USD',
-      tax_amount: parseFloat(fields.tax?.toString() || '0'),
+      tax_amount: parseFloat(fields.tax_amount?.toString() || '0'),
       subtotal: parseFloat(fields.subtotal?.toString() || '0'),
-      payment_terms: fields.paymentTerms || '',
-      purchase_order_number: fields.purchaseOrder || '',
-      billing_address: fields.billingAddress?.full || '',
-      shipping_address: fields.shippingAddress?.full || '',
-      payment_method: fields.paymentMethod || '',
-      discount_amount: parseFloat(fields.discount?.toString() || '0'),
-      additional_fees: parseFloat(fields.additionalCharges?.toString() || '0'),
+      payment_terms: fields.payment_terms || '',
+      purchase_order_number: fields.purchase_order_number || '',
+      billing_address: fields.billing_address || '',
+      shipping_address: fields.shipping_address || '',
+      payment_method: fields.payment_method || '',
+      discount_amount: parseFloat(fields.discount_amount?.toString() || '0'),
+      additional_fees: parseFloat(fields.additional_fees?.toString() || '0'),
       notes: fields.notes || '',
     }
 

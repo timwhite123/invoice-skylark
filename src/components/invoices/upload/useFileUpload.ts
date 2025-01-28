@@ -96,7 +96,10 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
             body: { fileUrl: publicUrl },
           });
 
-        if (parseError) throw parseError;
+        if (parseError) {
+          console.error('Parse error:', parseError);
+          throw parseError;
+        }
 
         console.log('Parsed invoice data:', parseData);
         setExtractedData(prev => [...prev, parseData]);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, X, Type, Info, AlignLeft } from "lucide-react";
+import { Check, X, Info } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
@@ -177,13 +177,9 @@ export const FieldMappingSuggestions = ({
         </TooltipProvider>
       </div>
 
-      <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-gray-50 rounded-lg text-sm font-medium">
-        <div className="col-span-3 flex items-center gap-2">
-          <AlignLeft className="h-4 w-4" />
-          Field Name
-        </div>
-        <div className="col-span-3">Invoice Data</div>
-        <div className="col-span-5">Data Type</div>
+      <div className="grid grid-cols-8 gap-2 px-4 py-2 bg-gray-50 rounded-lg text-sm font-medium">
+        <div className="col-span-3">Extracted Value</div>
+        <div className="col-span-4">Data Type</div>
         <div className="col-span-1">Action</div>
       </div>
 
@@ -191,17 +187,14 @@ export const FieldMappingSuggestions = ({
         {Object.entries(extractedData).map(([field, value]) => (
           <div
             key={field}
-            className={`grid grid-cols-12 gap-2 items-center p-2 rounded-lg border ${
+            className={`grid grid-cols-8 gap-2 items-center p-2 rounded-lg border ${
               excludedFields.has(field) ? 'opacity-50 bg-gray-50' : ''
             }`}
           >
-            <div className="col-span-3 font-medium truncate" title={field}>
-              {field}
-            </div>
             <div className="col-span-3 text-sm text-gray-600 truncate" title={formatSampleValue(value)}>
               {formatSampleValue(value)}
             </div>
-            <div className="col-span-5">
+            <div className="col-span-4">
               {selectedFieldForCustomType === field ? (
                 <div className="flex gap-2">
                   <Input

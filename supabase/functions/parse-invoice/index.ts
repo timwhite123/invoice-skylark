@@ -51,9 +51,73 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
 
-    // Create the template object and stringify it
+    // Create a more detailed template for invoice parsing
     const template = JSON.stringify({
-      profile: "invoice"
+      "profiles": [{
+        "name": "invoice",
+        "fields": [
+          {
+            "name": "vendor",
+            "type": "field",
+            "regex": "(?:Company|Vendor|From|Business)\\s*(?:Name)?:\\s*([^\\n]+)"
+          },
+          {
+            "name": "invoiceId",
+            "type": "field",
+            "regex": "(?:Invoice|Reference|Document)\\s*(?:Number|ID|#)?:\\s*([^\\n]+)"
+          },
+          {
+            "name": "invoiceDate",
+            "type": "field",
+            "regex": "(?:Invoice|Document)\\s*Date:\\s*([^\\n]+)"
+          },
+          {
+            "name": "dueDate",
+            "type": "field",
+            "regex": "Due\\s*Date:\\s*([^\\n]+)"
+          },
+          {
+            "name": "total",
+            "type": "field",
+            "regex": "(?:Total|Amount Due|Grand Total):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
+          },
+          {
+            "name": "subtotal",
+            "type": "field",
+            "regex": "(?:Subtotal|Net Amount):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
+          },
+          {
+            "name": "tax",
+            "type": "field",
+            "regex": "(?:Tax|VAT|GST):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
+          },
+          {
+            "name": "currency",
+            "type": "field",
+            "regex": "Currency:\\s*([A-Z]{3})"
+          },
+          {
+            "name": "paymentTerms",
+            "type": "field",
+            "regex": "(?:Payment Terms|Terms):\\s*([^\\n]+)"
+          },
+          {
+            "name": "purchaseOrder",
+            "type": "field",
+            "regex": "(?:PO|Purchase Order)\\s*(?:Number|#)?:\\s*([^\\n]+)"
+          },
+          {
+            "name": "billingAddress",
+            "type": "field",
+            "regex": "(?:Bill(?:ing)?|Invoice)\\s*(?:To|Address):\\s*([^\\n]+(?:\\n[^\\n]+)*)"
+          },
+          {
+            "name": "shippingAddress",
+            "type": "field",
+            "regex": "(?:Ship(?:ping)?|Deliver)\\s*(?:To|Address):\\s*([^\\n]+(?:\\n[^\\n]+)*)"
+          }
+        ]
+      }]
     })
 
     // PDF.co API request body

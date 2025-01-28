@@ -51,18 +51,13 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
 
-    // PDF.co API expects a specific format for the request body
+    // PDF.co API request body
     const requestBody = {
       url: signedUrl,
       async: false,
-      profiles: ["invoice"], // Specify that we want to parse an invoice
-      inline: true, // Get the result in the response
-      pages: "",
-      password: "",
-      rotate: "",
-      language: "eng",
+      inline: true,
       template: {
-        "profiles": ["invoice"]
+        profile: "invoice"
       }
     }
 

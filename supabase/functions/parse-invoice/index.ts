@@ -47,7 +47,6 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
     
-    // Convert template to string and log it for debugging
     const stringifiedTemplate = JSON.stringify(invoiceTemplate)
     console.log('Using template:', stringifiedTemplate)
 
@@ -61,10 +60,8 @@ serve(async (req) => {
         url: signedUrl,
         async: false,
         template: stringifiedTemplate,
-        outputFormat: 'JSON',
-        password: '',
-        inline: false,
-        profiles: false
+        profiles: true,
+        outputFormat: 'JSON'
       })
     })
 

@@ -57,7 +57,7 @@ serve(async (req) => {
       body: JSON.stringify({
         url: signedUrl,
         async: false,
-        template: JSON.stringify(invoiceTemplate)
+        template: invoiceTemplate
       })
     })
 
@@ -74,7 +74,7 @@ serve(async (req) => {
     }
 
     // Extract fields from the parse result
-    const fields = parseResult.body || {}
+    const fields = parseResult.objects?.[0]?.fields || {}
     console.log('Extracted raw fields:', fields)
 
     // Map the extracted fields to our expected format

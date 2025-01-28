@@ -51,14 +51,17 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
 
+    // Create the template object and stringify it
+    const template = JSON.stringify({
+      profile: "invoice"
+    })
+
     // PDF.co API request body
     const requestBody = {
       url: signedUrl,
       async: false,
       inline: true,
-      template: {
-        profile: "invoice"
-      }
+      template
     }
 
     console.log('Sending request to PDF.co:', JSON.stringify(requestBody))

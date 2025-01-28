@@ -22,19 +22,19 @@ export const FileUploadZone = ({ userPlan, isUploading, onDrop }: FileUploadZone
       {...getRootProps()}
       className={`
         flex flex-col items-center justify-center p-10 border-2 border-dashed
-        rounded-lg cursor-pointer transition-colors bg-white
+        rounded-lg cursor-pointer transition-colors bg-white text-center
         ${isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300'}
         ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
       `}
     >
       <input {...getInputProps()} disabled={isUploading} />
       <FileUp className="h-10 w-10 text-gray-400" />
-      <p className="mt-2 text-sm text-gray-600">
+      <p className="mt-2 text-sm text-gray-600 text-center">
         {isDragActive
           ? "Drop your invoice(s) here"
           : `Drag and drop your invoice PDF${userPlan !== 'free' ? 's' : ''}, or click to select`}
       </p>
-      <div className="mt-2 text-xs text-gray-500 space-y-1">
+      <div className="mt-2 text-xs text-gray-500 space-y-1 text-center">
         <p>
           {userPlan === 'free' ? 'Free plan allows 1 file up to 25MB' : 
            userPlan === 'pro' ? 'Pro plan allows up to 10 files (100MB each)' :

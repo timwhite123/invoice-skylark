@@ -51,7 +51,7 @@ serve(async (req) => {
 
     console.log('Sending request to PDF.co:', JSON.stringify(requestBody))
 
-    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/ai/invoiceparser', {
+    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/invoice/parser', {
       method: 'POST',
       headers: {
         'x-api-key': pdfcoApiKey,

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { invoiceTemplate } from './template.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,57 +46,7 @@ serve(async (req) => {
     }
 
     console.log('Generated signed URL:', signedUrl)
-
-    // Create a more detailed template for invoice parsing
-    const template = {
-      "profiles": [{
-        "name": "invoice",
-        "fields": [
-          {
-            "name": "vendor_name",
-            "type": "field",
-            "regex": "(?:Company|Vendor|From|Business|Supplier)\\s*(?:Name)?:\\s*([^\\n]+)"
-          },
-          {
-            "name": "invoice_number",
-            "type": "field",
-            "regex": "(?:Invoice|Reference|Document)\\s*(?:Number|ID|#)?:\\s*([^\\n]+)"
-          },
-          {
-            "name": "invoice_date",
-            "type": "field",
-            "regex": "(?:Invoice|Document)\\s*Date:\\s*([^\\n]+)"
-          },
-          {
-            "name": "due_date",
-            "type": "field",
-            "regex": "Due\\s*Date:\\s*([^\\n]+)"
-          },
-          {
-            "name": "total_amount",
-            "type": "field",
-            "regex": "(?:Total|Amount Due|Grand Total):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
-          },
-          {
-            "name": "subtotal",
-            "type": "field",
-            "regex": "(?:Subtotal|Net Amount):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
-          },
-          {
-            "name": "tax_amount",
-            "type": "field",
-            "regex": "(?:Tax|VAT|GST):\\s*[$€£]?\\s*(\\d+(?:[.,]\\d{2})?)"
-          },
-          {
-            "name": "currency",
-            "type": "field",
-            "regex": "Currency:\\s*([A-Z]{3})"
-          }
-        ]
-      }]
-    }
-
-    console.log('Sending request to PDF.co with template:', JSON.stringify(template))
+    console.log('Using template:', JSON.stringify(invoiceTemplate, null, 2))
 
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
@@ -106,7 +57,7 @@ serve(async (req) => {
       body: JSON.stringify({
         url: signedUrl,
         async: false,
-        template: JSON.stringify(template)
+        template: JSON.stringify(invoiceTemplate)
       })
     })
 
@@ -126,6 +77,7 @@ serve(async (req) => {
     const fields = parseResult.body || {}
     console.log('Extracted raw fields:', fields)
 
+    // Map the extracted fields to our expected format
     const transformedData = {
       vendor_name: fields.vendor_name || '',
       invoice_number: fields.invoice_number || '',

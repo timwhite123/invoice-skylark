@@ -25,12 +25,11 @@ export const FieldMappingSuggestions = ({
   const [mappings, setMappings] = useState<Record<string, string>>(() => {
     const initialMappings: Record<string, string> = {};
     Object.entries(extractedData).forEach(([key, value]) => {
-      // Convert key to lowercase for consistent matching
       const keyLower = key.toLowerCase();
       const valueStr = String(value).toLowerCase();
 
-      // Determine field type based on value and key patterns
-      if (typeof value === 'number' || !isNaN(Number(value))) {
+      // Enhanced type detection based on value content and patterns
+      if (typeof value === 'number' || (!isNaN(Number(value)) && value !== '')) {
         if (keyLower.includes('amount') || keyLower.includes('total') || keyLower.includes('price')) {
           initialMappings[key] = 'total_amount';
         } else if (keyLower.includes('tax')) {
@@ -40,7 +39,11 @@ export const FieldMappingSuggestions = ({
         } else if (keyLower.includes('subtotal')) {
           initialMappings[key] = 'subtotal';
         }
-      } else if (value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value)))) {
+      } else if (
+        value instanceof Date || 
+        (typeof value === 'string' && !isNaN(Date.parse(value))) ||
+        /^\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}$/.test(valueStr)
+      ) {
         if (keyLower.includes('due')) {
           initialMappings[key] = 'due_date';
         } else {
@@ -68,7 +71,6 @@ export const FieldMappingSuggestions = ({
         }
       }
       
-      // Default to unmapped if no match found
       if (!initialMappings[key]) {
         initialMappings[key] = 'unmapped';
       }
@@ -102,9 +104,18 @@ export const FieldMappingSuggestions = ({
   ];
 
   const formatSampleValue = (value: any): string => {
-    if (value === null || value === undefined) return 'N/A';
-    if (typeof value === 'object' && value instanceof Date) {
+    if (value === null || value === undefined) return 'No data extracted';
+    if (value instanceof Date) {
       return value.toLocaleDateString();
+    }
+    if (typeof value === 'number') {
+      return value.toLocaleString(undefined, { 
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2 
+      });
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+      return 'No data extracted';
     }
     return String(value);
   };
@@ -171,7 +182,7 @@ export const FieldMappingSuggestions = ({
           <AlignLeft className="h-4 w-4" />
           Field Name
         </div>
-        <div className="col-span-3">Sample Value</div>
+        <div className="col-span-3">Invoice Data</div>
         <div className="col-span-5">Data Type</div>
         <div className="col-span-1">Action</div>
       </div>
@@ -187,7 +198,7 @@ export const FieldMappingSuggestions = ({
             <div className="col-span-3 font-medium truncate" title={field}>
               {field}
             </div>
-            <div className="col-span-3 text-sm text-gray-500 truncate" title={formatSampleValue(value)}>
+            <div className="col-span-3 text-sm text-gray-600 truncate" title={formatSampleValue(value)}>
               {formatSampleValue(value)}
             </div>
             <div className="col-span-5">

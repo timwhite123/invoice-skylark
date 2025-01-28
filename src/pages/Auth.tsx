@@ -115,7 +115,7 @@ const Auth = () => {
 
   if (resetPassword) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 relative">
+      <div className="min-h-screen flex flex-col items-center justify-center p-12 relative">
         <AnimatedGridPattern
           numSquares={30}
           maxOpacity={0.1}
@@ -123,7 +123,7 @@ const Auth = () => {
           repeatDelay={1}
           className="[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]"
         />
-        <Card className="w-full max-w-xs p-6 space-y-4 relative z-10">
+        <Card className="w-full max-w-md p-8 space-y-4 relative z-10">
           <div className="space-y-2">
             <img 
               src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
@@ -167,7 +167,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8 relative">
+    <div className="min-h-screen flex flex-col items-center justify-center p-12 relative">
       <AnimatedGridPattern
         numSquares={30}
         maxOpacity={0.1}
@@ -175,7 +175,7 @@ const Auth = () => {
         repeatDelay={1}
         className="[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]"
       />
-      <Card className="w-full max-w-xs p-8 relative z-10"> {/* Changed p-6 to p-8 */}
+      <Card className="w-full max-w-md p-8 relative z-10">
         <div className="space-y-2 mb-4">
           <img 
             src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"

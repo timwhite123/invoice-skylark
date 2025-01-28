@@ -46,7 +46,7 @@ serve(async (req) => {
     }
 
     console.log('Generated signed URL:', signedUrl)
-    console.log('Using template:', JSON.stringify(invoiceTemplate, null, 2))
+    console.log('Using template:', invoiceTemplate)
 
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
@@ -57,7 +57,8 @@ serve(async (req) => {
       body: JSON.stringify({
         url: signedUrl,
         async: false,
-        template: invoiceTemplate
+        template: invoiceTemplate,
+        outputFormat: 'JSON'
       })
     })
 
@@ -73,28 +74,36 @@ serve(async (req) => {
       )
     }
 
+    if (!parseResult.objects || parseResult.objects.length === 0) {
+      console.error('No fields extracted from document')
+      return new Response(
+        JSON.stringify({ error: 'No data could be extracted from the document' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 422 }
+      )
+    }
+
     // Extract fields from the parse result
-    const fields = parseResult.objects?.[0]?.fields || {}
+    const fields = parseResult.objects[0].fields || {}
     console.log('Extracted raw fields:', fields)
 
     // Map the extracted fields to our expected format
     const transformedData = {
-      vendor_name: fields.vendor_name || '',
-      invoice_number: fields.invoice_number || '',
-      invoice_date: fields.invoice_date || null,
-      due_date: fields.due_date || null,
-      total_amount: parseFloat(fields.total_amount?.toString() || '0'),
-      currency: fields.currency || 'USD',
-      tax_amount: parseFloat(fields.tax_amount?.toString() || '0'),
-      subtotal: parseFloat(fields.subtotal?.toString() || '0'),
-      payment_terms: fields.payment_terms || '',
-      purchase_order_number: fields.purchase_order_number || '',
-      billing_address: fields.billing_address || '',
-      shipping_address: fields.shipping_address || '',
-      payment_method: fields.payment_method || '',
-      discount_amount: parseFloat(fields.discount_amount?.toString() || '0'),
-      additional_fees: parseFloat(fields.additional_fees?.toString() || '0'),
-      notes: fields.notes || '',
+      vendor_name: fields.vendor_name?.value || '',
+      invoice_number: fields.invoice_number?.value || '',
+      invoice_date: fields.invoice_date?.value || null,
+      due_date: fields.due_date?.value || null,
+      total_amount: parseFloat(fields.total_amount?.value || '0'),
+      currency: fields.currency?.value || 'USD',
+      tax_amount: parseFloat(fields.tax_amount?.value || '0'),
+      subtotal: parseFloat(fields.subtotal?.value || '0'),
+      payment_terms: fields.payment_terms?.value || '',
+      purchase_order_number: fields.purchase_order_number?.value || '',
+      billing_address: fields.billing_address?.value || '',
+      shipping_address: fields.shipping_address?.value || '',
+      payment_method: fields.payment_method?.value || '',
+      discount_amount: parseFloat(fields.discount_amount?.value || '0'),
+      additional_fees: parseFloat(fields.additional_fees?.value || '0'),
+      notes: fields.notes?.value || '',
     }
 
     console.log('Transformed data being returned:', transformedData)

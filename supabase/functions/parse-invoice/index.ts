@@ -50,6 +50,8 @@ serve(async (req) => {
     const stringifiedTemplate = JSON.stringify(invoiceTemplate)
     console.log('Using template:', stringifiedTemplate)
 
+    // First, try with built-in profiles
+    console.log('Attempting to parse with built-in profiles...')
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
       headers: {
@@ -59,7 +61,6 @@ serve(async (req) => {
       body: JSON.stringify({
         url: signedUrl,
         async: false,
-        template: stringifiedTemplate,
         profiles: true,
         outputFormat: 'JSON'
       })
@@ -69,23 +70,48 @@ serve(async (req) => {
     const parseResult = await parseResponse.json()
     console.log('PDF.co raw response:', parseResult)
 
-    if (!parseResponse.ok) {
-      console.error('Parse error:', parseResult)
-      return new Response(
-        JSON.stringify({ error: 'Failed to parse document', details: parseResult }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: parseResponse.status }
-      )
-    }
+    // If built-in profiles fail, try with our custom template
+    if (!parseResponse.ok || !parseResult.objects || parseResult.objects.length === 0) {
+      console.log('Built-in profiles failed, trying with custom template...')
+      const customParseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
+        method: 'POST',
+        headers: {
+          'x-api-key': pdfcoApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: signedUrl,
+          async: false,
+          template: stringifiedTemplate,
+          profiles: false,
+          outputFormat: 'JSON'
+        })
+      })
 
-    if (!parseResult.objects || parseResult.objects.length === 0) {
-      console.error('No fields extracted from document')
-      return new Response(
-        JSON.stringify({ 
-          error: 'No data could be extracted from the document',
-          details: 'The PDF parser could not find any matching fields in the document. Please check if the PDF is text-based and not scanned.'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 422 }
-      )
+      console.log('Custom template PDF.co response status:', customParseResponse.status)
+      const customParseResult = await customParseResponse.json()
+      console.log('Custom template PDF.co raw response:', customParseResult)
+
+      if (!customParseResponse.ok) {
+        console.error('Parse error:', customParseResult)
+        return new Response(
+          JSON.stringify({ error: 'Failed to parse document', details: customParseResult }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: customParseResponse.status }
+        )
+      }
+
+      if (!customParseResult.objects || customParseResult.objects.length === 0) {
+        console.error('No fields extracted from document')
+        return new Response(
+          JSON.stringify({ 
+            error: 'No data could be extracted from the document',
+            details: 'The PDF parser could not find any matching fields in the document. Please check if the PDF is text-based and not scanned.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 422 }
+        )
+      }
+
+      parseResult = customParseResult
     }
 
     // Extract fields from the parse result

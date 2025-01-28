@@ -17,6 +17,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
+    console.log('Starting parse-invoice function with fileUrl:', fileUrl)
+
     if (!fileUrl || !pdfcoApiKey) {
       console.error('Missing required parameters:', { fileUrl: !!fileUrl, pdfcoApiKey: !!pdfcoApiKey })
       return new Response(
@@ -25,7 +27,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('Starting invoice parsing for file:', fileUrl)
+    console.log('Creating Supabase client and generating signed URL')
     const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
     const filePath = fileUrl.split('/').slice(-1)[0]
     
@@ -110,7 +112,7 @@ serve(async (req) => {
 
     console.log('PDF.co response status:', parseResponse.status)
     const parseResult = await parseResponse.json()
-    console.log('PDF.co parse result:', parseResult)
+    console.log('PDF.co raw response:', parseResult)
 
     if (!parseResponse.ok) {
       console.error('Parse error:', parseResult)
@@ -122,7 +124,7 @@ serve(async (req) => {
 
     // Extract fields from the parse result
     const fields = parseResult.body || {}
-    console.log('Extracted fields:', fields)
+    console.log('Extracted raw fields:', fields)
 
     const transformedData = {
       vendor_name: fields.vendor_name || '',
@@ -143,7 +145,7 @@ serve(async (req) => {
       notes: fields.notes || '',
     }
 
-    console.log('Transformed data:', transformedData)
+    console.log('Transformed data being returned:', transformedData)
 
     return new Response(
       JSON.stringify(transformedData),

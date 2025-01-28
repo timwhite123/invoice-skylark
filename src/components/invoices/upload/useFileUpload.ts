@@ -28,6 +28,8 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
   };
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('Starting file upload process with files:', acceptedFiles.map(f => ({ name: f.name, size: f.size })));
+    
     const maxFiles = userPlan === 'free' ? 1 : 10;
     const sizeLimit = FILE_SIZE_LIMITS[userPlan];
     
@@ -73,37 +75,43 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Not authenticated");
 
+        console.log('Processing file:', file.name);
+        
         const fileExt = file.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
         
-        console.log('Uploading file:', fileName);
+        console.log('Uploading file to Supabase storage:', fileName);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('invoice-files')
           .upload(`${fileName}`, file);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('File upload error:', uploadError);
+          throw uploadError;
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('invoice-files')
           .getPublicUrl(fileName);
 
-        console.log('File uploaded, public URL:', publicUrl);
+        console.log('File uploaded successfully, public URL:', publicUrl);
         setFileUrls(prev => [...prev, publicUrl]);
 
-        console.log('Invoking parse-invoice function...');
+        console.log('Invoking parse-invoice function with URL:', publicUrl);
         const { data: parseData, error: parseError } = await supabase.functions
           .invoke('parse-invoice', {
             body: { fileUrl: publicUrl },
           });
 
         if (parseError) {
-          console.error('Parse error:', parseError);
+          console.error('Parse invoice error:', parseError);
           throw parseError;
         }
 
-        console.log('Parsed invoice data:', parseData);
+        console.log('Received parsed invoice data:', parseData);
         setExtractedData(prev => [...prev, parseData]);
 
+        console.log('Saving invoice to database...');
         const { error: dbError } = await supabase
           .from('invoices')
           .insert({
@@ -128,7 +136,10 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
             notes: parseData.notes,
           });
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error('Database insert error:', dbError);
+          throw dbError;
+        }
       }
 
       setUploadProgress(100);
@@ -141,7 +152,7 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
       queryClient.invalidateQueries({ queryKey: ['latest-invoice'] });
 
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error('Upload process error:', error);
       toast({
         title: "Upload failed",
         description: error.message || "There was an error uploading your invoice(s)",

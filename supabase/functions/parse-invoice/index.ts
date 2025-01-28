@@ -46,8 +46,8 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
 
-    // First attempt: Try with built-in invoice parser profile
-    console.log('Attempting to parse with built-in invoice parser profile...')
+    // First try to parse using the PDF.co AI extractor
+    console.log('Attempting to parse with PDF.co AI extractor...')
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
       headers: {
@@ -57,7 +57,8 @@ serve(async (req) => {
       body: JSON.stringify({
         url: signedUrl,
         async: false,
-        profile: "invoice",
+        parseType: "Invoice",
+        templateName: "Auto",
         outputFormat: "JSON"
       })
     })
@@ -68,32 +69,74 @@ serve(async (req) => {
 
     if (!parseResponse.ok || parseResult.error === true) {
       console.error('Parse error:', parseResult)
+      
+      // Try fallback to text extraction if AI parsing fails
+      console.log('AI parsing failed, attempting text extraction...')
+      const textResponse = await fetch('https://api.pdf.co/v1/pdf/text', {
+        method: 'POST',
+        headers: {
+          'x-api-key': pdfcoApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: signedUrl,
+          async: false,
+          inline: false
+        })
+      })
+
+      if (!textResponse.ok) {
+        console.error('Text extraction failed:', await textResponse.json())
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to parse document', 
+            details: parseResult 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        )
+      }
+
+      const textResult = await textResponse.json()
+      console.log('Text extraction result:', textResult)
+
+      // Extract basic information from text using regex patterns
+      const text = textResult.text || ''
+      const invoiceNumberMatch = text.match(/(?:Invoice|Reference|Bill)\s*(?:#|No|Number|ID)?[:\s]+([A-Z0-9-]+)/i)
+      const dateMatch = text.match(/(?:Date|Invoice Date)[:\s]+(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})/i)
+      const amountMatch = text.match(/(?:Total|Amount Due|Balance)[:\s]*[$€£]?([\d,]+\.?\d{0,2})/i)
+      const vendorMatch = text.match(/(?:From|Company|Vendor|Business Name)[:\s]+([^\n]{2,50})/i)
+
+      const transformedData = {
+        vendor_name: vendorMatch?.[1]?.trim() || '',
+        invoice_number: invoiceNumberMatch?.[1]?.trim() || '',
+        invoice_date: dateMatch?.[1] || null,
+        due_date: null,
+        total_amount: amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0,
+        currency: text.includes('€') ? 'EUR' : text.includes('£') ? 'GBP' : 'USD',
+        subtotal: 0,
+        tax_amount: 0
+      }
+
+      console.log('Extracted data from text:', transformedData)
       return new Response(
-        JSON.stringify({ 
-          error: 'Failed to parse document', 
-          details: parseResult 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: parseResponse.status || 500 
-        }
+        JSON.stringify(transformedData),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Extract and transform the parsed data
+    // Extract and transform the parsed data from successful AI parsing
     const fields = parseResult.body || {}
     console.log('Extracted raw fields:', fields)
 
-    // Map the extracted fields to our expected format
     const transformedData = {
-      vendor_name: fields.Vendor || fields.vendor_name || '',
-      invoice_number: fields.InvoiceNumber || fields.invoice_number || '',
-      invoice_date: fields.InvoiceDate || fields.invoice_date || null,
+      vendor_name: fields.Vendor || fields.vendor_name || fields.Company || '',
+      invoice_number: fields.InvoiceNumber || fields.invoice_number || fields.Reference || '',
+      invoice_date: fields.InvoiceDate || fields.invoice_date || fields.Date || null,
       due_date: fields.DueDate || fields.due_date || null,
-      total_amount: parseFloat(fields.TotalAmount || fields.total_amount || '0'),
-      currency: fields.Currency || 'USD', // Default to USD if not found
+      total_amount: parseFloat(fields.TotalAmount || fields.total_amount || fields.Total || '0'),
+      currency: fields.Currency || fields.currency || 'USD',
       subtotal: parseFloat(fields.Subtotal || fields.subtotal || '0'),
-      tax_amount: parseFloat(fields.Tax || fields.tax_amount || '0'),
+      tax_amount: parseFloat(fields.Tax || fields.tax_amount || '0')
     }
 
     console.log('Transformed data being returned:', transformedData)

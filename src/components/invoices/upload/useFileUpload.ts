@@ -76,6 +76,7 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
         
+        console.log('Uploading file:', fileName);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('invoice-files')
           .upload(`${fileName}`, file);
@@ -86,8 +87,10 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
           .from('invoice-files')
           .getPublicUrl(fileName);
 
+        console.log('File uploaded, public URL:', publicUrl);
         setFileUrls(prev => [...prev, publicUrl]);
 
+        console.log('Invoking parse-invoice function...');
         const { data: parseData, error: parseError } = await supabase.functions
           .invoke('parse-invoice', {
             body: { fileUrl: publicUrl },
@@ -95,6 +98,7 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
 
         if (parseError) throw parseError;
 
+        console.log('Parsed invoice data:', parseData);
         setExtractedData(prev => [...prev, parseData]);
 
         const { error: dbError } = await supabase

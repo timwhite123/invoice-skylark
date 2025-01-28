@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -114,8 +115,15 @@ const Auth = () => {
 
   if (resetPassword) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8">
-        <Card className="w-full max-w-xs p-6 space-y-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 relative">
+        <AnimatedGridPattern
+          numSquares={30}
+          maxOpacity={0.1}
+          duration={3}
+          repeatDelay={1}
+          className="[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]"
+        />
+        <Card className="w-full max-w-xs p-6 space-y-4 relative z-10">
           <div className="space-y-2">
             <img 
               src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"
@@ -159,8 +167,15 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8">
-      <Card className="w-full max-w-xs p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 relative">
+      <AnimatedGridPattern
+        numSquares={30}
+        maxOpacity={0.1}
+        duration={3}
+        repeatDelay={1}
+        className="[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]"
+      />
+      <Card className="w-full max-w-xs p-6 relative z-10">
         <div className="space-y-2 mb-4">
           <img 
             src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"

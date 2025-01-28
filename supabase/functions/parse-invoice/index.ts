@@ -46,8 +46,10 @@ serve(async (req) => {
     }
 
     console.log('Generated signed URL:', signedUrl)
+    
+    // Convert template to string and log it for debugging
     const stringifiedTemplate = JSON.stringify(invoiceTemplate)
-    console.log('Using simplified template:', stringifiedTemplate)
+    console.log('Using template:', stringifiedTemplate)
 
     const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
       method: 'POST',
@@ -59,7 +61,10 @@ serve(async (req) => {
         url: signedUrl,
         async: false,
         template: stringifiedTemplate,
-        outputFormat: 'JSON'
+        outputFormat: 'JSON',
+        password: '',
+        inline: false,
+        profiles: false
       })
     })
 
@@ -80,7 +85,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'No data could be extracted from the document',
-          details: 'The PDF parser could not find any matching fields in the document'
+          details: 'The PDF parser could not find any matching fields in the document. Please check if the PDF is text-based and not scanned.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 422 }
       )

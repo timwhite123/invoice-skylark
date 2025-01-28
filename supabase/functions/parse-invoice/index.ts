@@ -44,9 +44,10 @@ serve(async (req) => {
     const requestBody = {
       url: signedUrl,
       async: false,
-      name: "invoice.pdf",
-      language: "eng",
-      pages: ""
+      pages: "",
+      password: "",
+      rotate: "",
+      language: "eng"
     }
 
     console.log('Sending request to PDF.co:', JSON.stringify(requestBody))
@@ -73,7 +74,6 @@ serve(async (req) => {
     }
 
     // Extract fields from the parse result
-    // The AI Invoice Parser returns data in a different format than document parser
     const fields = parseResult.body || {}
     console.log('Extracted fields:', fields)
 

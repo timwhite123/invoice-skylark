@@ -175,7 +175,7 @@ const Auth = () => {
         repeatDelay={1}
         className="[mask-image:radial-gradient(600px_circle_at_center,white,transparent)]"
       />
-      <Card className="w-full max-w-xs p-6 relative z-10">
+      <Card className="w-full max-w-xs p-8 relative z-10"> {/* Changed p-6 to p-8 */}
         <div className="space-y-2 mb-4">
           <img 
             src="https://shhnbluomlzqhdhvlppq.supabase.co/storage/v1/object/public/Logos%20and%20Images/invoicejet_logo.svg"

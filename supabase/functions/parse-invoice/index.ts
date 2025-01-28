@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -20,8 +21,14 @@ serve(async (req) => {
     if (!fileUrl || !pdfcoApiKey) {
       console.error('Missing required parameters:', { fileUrl: !!fileUrl, pdfcoApiKey: !!pdfcoApiKey })
       return new Response(
-        JSON.stringify({ error: !fileUrl ? 'No file URL provided' : 'PDF.co API key not configured' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: !fileUrl ? 400 : 500 }
+        JSON.stringify({ 
+          error: !fileUrl ? 'No file URL provided' : 'PDF.co API key not configured',
+          details: { fileUrl: !!fileUrl, pdfcoApiKey: !!pdfcoApiKey }
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: !fileUrl ? 400 : 500 
+        }
       )
     }
 
@@ -36,7 +43,10 @@ serve(async (req) => {
 
     if (signedUrlError) {
       console.error('Signed URL error:', signedUrlError)
-      throw signedUrlError
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate signed URL', details: signedUrlError }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     console.log('Generated signed URL:', signedUrl)
@@ -47,7 +57,8 @@ serve(async (req) => {
       pages: "",
       password: "",
       rotate: "",
-      language: "eng"
+      language: "eng",
+      profiles: ["invoice"]
     }
 
     console.log('Sending request to PDF.co:', JSON.stringify(requestBody))

@@ -44,13 +44,15 @@ serve(async (req) => {
 
     const requestBody = {
       url: signedUrl,
-      template: JSON.stringify(invoiceTemplate),
+      template: invoiceTemplate,
       async: false,
       name: "invoice.pdf",
-      pages: "1-",
+      pages: "",
       password: "",
-      inline: false,
-      profiles: false
+      inline: true,
+      profiles: true,
+      ocr: true,
+      language: "eng"
     }
 
     console.log('Sending request to PDF.co:', JSON.stringify(requestBody))

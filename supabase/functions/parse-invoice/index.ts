@@ -44,7 +44,7 @@ serve(async (req) => {
 
     const requestBody = {
       url: signedUrl,
-      template: invoiceTemplate,
+      template: JSON.stringify(invoiceTemplate), // Convert template object to string
       async: false,
       name: "invoice.pdf",
       pages: "",

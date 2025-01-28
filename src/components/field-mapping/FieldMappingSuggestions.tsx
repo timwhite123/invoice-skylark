@@ -29,66 +29,47 @@ export const FieldMappingSuggestions = ({
       const keyLower = key.toLowerCase();
       const valueStr = String(value).toLowerCase();
 
-      // Vendor/Company related fields
-      if (keyLower.match(/vendor|company|supplier|business|from|seller/)) {
-        initialMappings[key] = 'vendor_name';
+      // Determine field type based on value and key patterns
+      if (typeof value === 'number' || !isNaN(Number(value))) {
+        if (keyLower.includes('amount') || keyLower.includes('total') || keyLower.includes('price')) {
+          initialMappings[key] = 'total_amount';
+        } else if (keyLower.includes('tax')) {
+          initialMappings[key] = 'tax_amount';
+        } else if (keyLower.includes('discount')) {
+          initialMappings[key] = 'discount_amount';
+        } else if (keyLower.includes('subtotal')) {
+          initialMappings[key] = 'subtotal';
+        }
+      } else if (value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value)))) {
+        if (keyLower.includes('due')) {
+          initialMappings[key] = 'due_date';
+        } else {
+          initialMappings[key] = 'invoice_date';
+        }
+      } else if (typeof value === 'string') {
+        if (keyLower.match(/vendor|company|supplier|business|from|seller/)) {
+          initialMappings[key] = 'vendor_name';
+        } else if (keyLower.match(/invoice.*num|ref|reference|document.*id|inv.*no/)) {
+          initialMappings[key] = 'invoice_number';
+        } else if (keyLower.match(/currency|cur|money/)) {
+          initialMappings[key] = 'currency';
+        } else if (keyLower.match(/payment.*method|pay.*via|pay.*using/)) {
+          initialMappings[key] = 'payment_method';
+        } else if (keyLower.match(/payment.*terms|terms|net/)) {
+          initialMappings[key] = 'payment_terms';
+        } else if (keyLower.match(/po|purchase.*order|order.*num/)) {
+          initialMappings[key] = 'purchase_order_number';
+        } else if (keyLower.match(/bill.*address|billing/)) {
+          initialMappings[key] = 'billing_address';
+        } else if (keyLower.match(/ship.*address|shipping|deliver/)) {
+          initialMappings[key] = 'shipping_address';
+        } else if (keyLower.match(/note|comment|remark|description/)) {
+          initialMappings[key] = 'notes';
+        }
       }
-      // Invoice number/reference fields
-      else if (keyLower.match(/invoice.*num|ref|reference|document.*id|inv.*no/)) {
-        initialMappings[key] = 'invoice_number';
-      }
-      // Date related fields
-      else if (keyLower.match(/due.*date|payment.*date|deadline/)) {
-        initialMappings[key] = 'due_date';
-      }
-      else if (keyLower.match(/date|issued|created/)) {
-        initialMappings[key] = 'invoice_date';
-      }
-      // Amount related fields
-      else if (keyLower.match(/tax|vat|gst/)) {
-        initialMappings[key] = 'tax_amount';
-      }
-      else if (keyLower.match(/discount|reduction|deduction/)) {
-        initialMappings[key] = 'discount_amount';
-      }
-      else if (keyLower.match(/subtotal|net.*amount|amount.*before.*tax/)) {
-        initialMappings[key] = 'subtotal';
-      }
-      else if (keyLower.match(/total|amount|sum|balance|due/)) {
-        initialMappings[key] = 'total_amount';
-      }
-      // Currency detection
-      else if (keyLower.match(/currency|cur|money/)) {
-        initialMappings[key] = 'currency';
-      }
-      // Payment related fields
-      else if (keyLower.match(/payment.*method|pay.*via|pay.*using/)) {
-        initialMappings[key] = 'payment_method';
-      }
-      else if (keyLower.match(/payment.*terms|terms|net/)) {
-        initialMappings[key] = 'payment_terms';
-      }
-      // Purchase order
-      else if (keyLower.match(/po|purchase.*order|order.*num/)) {
-        initialMappings[key] = 'purchase_order_number';
-      }
-      // Address fields
-      else if (keyLower.match(/bill.*address|billing/)) {
-        initialMappings[key] = 'billing_address';
-      }
-      else if (keyLower.match(/ship.*address|shipping|deliver/)) {
-        initialMappings[key] = 'shipping_address';
-      }
-      // Additional fees
-      else if (keyLower.match(/fee|charge|surcharge/)) {
-        initialMappings[key] = 'additional_fees';
-      }
-      // Notes/Comments
-      else if (keyLower.match(/note|comment|remark|description/)) {
-        initialMappings[key] = 'notes';
-      }
+      
       // Default to unmapped if no match found
-      else {
+      if (!initialMappings[key]) {
         initialMappings[key] = 'unmapped';
       }
     });
@@ -119,6 +100,14 @@ export const FieldMappingSuggestions = ({
     { value: 'custom', label: 'Custom Type' },
     { value: 'unmapped', label: 'Do Not Map' },
   ];
+
+  const formatSampleValue = (value: any): string => {
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'object' && value instanceof Date) {
+      return value.toLocaleDateString();
+    }
+    return String(value);
+  };
 
   const handleFieldTypeChange = (field: string, type: string) => {
     if (type === 'custom') {
@@ -198,8 +187,8 @@ export const FieldMappingSuggestions = ({
             <div className="col-span-3 font-medium truncate" title={field}>
               {field}
             </div>
-            <div className="col-span-3 text-sm text-gray-500 truncate" title={String(value)}>
-              {String(value)}
+            <div className="col-span-3 text-sm text-gray-500 truncate" title={formatSampleValue(value)}>
+              {formatSampleValue(value)}
             </div>
             <div className="col-span-5">
               {selectedFieldForCustomType === field ? (

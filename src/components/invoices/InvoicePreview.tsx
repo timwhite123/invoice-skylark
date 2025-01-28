@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { FieldMappingSuggestions } from '../field-mapping/FieldMappingSuggestions';
 import { useToast } from "@/hooks/use-toast";
@@ -11,13 +12,17 @@ interface InvoicePreviewProps {
   extractedData?: Record<string, any>;
   onCancel: () => void;
   userPlan?: 'free' | 'pro' | 'enterprise';
+  onSelect?: (selected: boolean) => void;
+  isSelected?: boolean;
 }
 
 export const InvoicePreview = ({ 
   fileUrl, 
   extractedData, 
   onCancel,
-  userPlan = 'free' 
+  userPlan = 'free',
+  onSelect,
+  isSelected = false
 }: InvoicePreviewProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showMappingSuggestions, setShowMappingSuggestions] = useState(true);
@@ -56,21 +61,21 @@ export const InvoicePreview = ({
         />
       ) : (
         <div className="space-y-6">
-          {isMapperMinimized ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setIsMapperMinimized(false);
-                setShowMappingSuggestions(true);
-              }}
-              className="flex items-center gap-2"
-            >
-              <ChevronDown className="h-4 w-4" />
-              {mappingsAccepted ? "Update Field Mappings" : "Show Field Mappings"}
-            </Button>
-          ) : (
-            <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            {isMapperMinimized ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsMapperMinimized(false);
+                  setShowMappingSuggestions(true);
+                }}
+                className="flex items-center gap-2"
+              >
+                <ChevronDown className="h-4 w-4" />
+                {mappingsAccepted ? "Update Field Mappings" : "Show Field Mappings"}
+              </Button>
+            ) : (
               <Button
                 variant="outline"
                 size="sm"
@@ -80,12 +85,31 @@ export const InvoicePreview = ({
                 <ChevronUp className="h-4 w-4" />
                 Hide Field Mappings
               </Button>
-              <FieldMappingSuggestions
-                extractedData={extractedData || {}}
-                onAccept={handleAcceptMappings}
-                onCancel={onCancel}
-              />
-            </div>
+            )}
+            
+            {onSelect && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="invoice-select"
+                  checked={isSelected}
+                  onCheckedChange={(checked) => onSelect(checked as boolean)}
+                />
+                <label
+                  htmlFor="invoice-select"
+                  className="text-sm text-gray-600 cursor-pointer"
+                >
+                  Select for export
+                </label>
+              </div>
+            )}
+          </div>
+
+          {!isMapperMinimized && (
+            <FieldMappingSuggestions
+              extractedData={extractedData || {}}
+              onAccept={handleAcceptMappings}
+              onCancel={onCancel}
+            />
           )}
 
           <div className="grid md:grid-cols-2 gap-6">

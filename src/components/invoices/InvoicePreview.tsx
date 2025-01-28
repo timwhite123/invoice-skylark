@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { FieldMappingSuggestions } from '../field-mapping/FieldMappingSuggestions';
 import { useToast } from "@/hooks/use-toast";
-import { DocumentPreview } from './DocumentPreview';
-import { ExtractedInformation } from './ExtractedInformation';
+import { FieldMappingSuggestions } from '../field-mapping/FieldMappingSuggestions';
+import { FieldMappingControls } from './preview/FieldMappingControls';
+import { PreviewContent } from './preview/PreviewContent';
 
 interface InvoicePreviewProps {
   fileUrl: string | null;
@@ -61,48 +58,17 @@ export const InvoicePreview = ({
         />
       ) : (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            {isMapperMinimized ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsMapperMinimized(false);
-                  setShowMappingSuggestions(true);
-                }}
-                className="flex items-center gap-2"
-              >
-                <ChevronDown className="h-4 w-4" />
-                {mappingsAccepted ? "Update Field Mappings" : "Show Field Mappings"}
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsMapperMinimized(true)}
-                className="flex items-center gap-2"
-              >
-                <ChevronUp className="h-4 w-4" />
-                Hide Field Mappings
-              </Button>
-            )}
-            
-            {onSelect && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="invoice-select"
-                  checked={isSelected}
-                  onCheckedChange={(checked) => onSelect(checked as boolean)}
-                />
-                <label
-                  htmlFor="invoice-select"
-                  className="text-sm text-gray-600 cursor-pointer"
-                >
-                  Select for export
-                </label>
-              </div>
-            )}
-          </div>
+          <FieldMappingControls
+            isMapperMinimized={isMapperMinimized}
+            mappingsAccepted={mappingsAccepted}
+            onShowMapper={() => {
+              setIsMapperMinimized(false);
+              setShowMappingSuggestions(true);
+            }}
+            onHideMapper={() => setIsMapperMinimized(true)}
+            onSelect={onSelect}
+            isSelected={isSelected}
+          />
 
           {!isMapperMinimized && (
             <FieldMappingSuggestions
@@ -112,18 +78,14 @@ export const InvoicePreview = ({
             />
           )}
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <ExtractedInformation
-              extractedData={extractedData || {}}
-              userPlan={userPlan}
-              onExport={handleExport}
-            />
-            <DocumentPreview
-              fileUrl={fileUrl}
-              isLoading={isLoading}
-              onLoad={() => setIsLoading(false)}
-            />
-          </div>
+          <PreviewContent
+            extractedData={extractedData || {}}
+            userPlan={userPlan}
+            fileUrl={fileUrl}
+            isLoading={isLoading}
+            onLoad={() => setIsLoading(false)}
+            onExport={handleExport}
+          />
         </div>
       )}
     </div>

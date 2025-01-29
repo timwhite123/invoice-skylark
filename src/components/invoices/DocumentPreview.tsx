@@ -8,6 +8,9 @@ interface DocumentPreviewProps {
 }
 
 export const DocumentPreview = ({ fileUrl, isLoading, onLoad }: DocumentPreviewProps) => {
+  // Ensure the URL is properly formatted
+  const sanitizedUrl = fileUrl.replace(/:\/$/, '');
+  
   return (
     <Card className="p-4 bg-white">
       <h3 className="text-lg font-semibold mb-4">Document Preview</h3>
@@ -18,7 +21,7 @@ export const DocumentPreview = ({ fileUrl, isLoading, onLoad }: DocumentPreviewP
           </div>
         )}
         <iframe
-          src={`${fileUrl}#toolbar=0`}
+          src={`${sanitizedUrl}#toolbar=0`}
           className="w-full h-full"
           onLoad={onLoad}
         />

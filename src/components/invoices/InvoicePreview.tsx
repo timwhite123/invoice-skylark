@@ -28,7 +28,11 @@ export const InvoicePreview = ({
     });
   };
 
+  // Ensure we have a valid URL before rendering
   if (!fileUrl) return null;
+
+  // Remove any potential trailing colons from the URL
+  const sanitizedFileUrl = fileUrl.replace(/:\/$/, '');
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -36,7 +40,7 @@ export const InvoicePreview = ({
         <PreviewContent
           extractedData={extractedData || {}}
           userPlan={userPlan}
-          fileUrl={fileUrl}
+          fileUrl={sanitizedFileUrl}
           isLoading={isLoading}
           onLoad={() => setIsLoading(false)}
           onExport={handleExport}

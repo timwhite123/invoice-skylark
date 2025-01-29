@@ -19,6 +19,10 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
     handleDrop,
   } = useFileUpload(userPlan);
 
+  // Get only the most recent file
+  const latestFileUrl = fileUrls[fileUrls.length - 1];
+  const latestExtractedData = extractedData[extractedData.length - 1];
+
   return (
     <div className="space-y-6">
       <div className="relative">
@@ -38,16 +42,16 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
         )}
       </div>
 
-      {fileUrls.map((url, index) => (
+      {latestFileUrl && (
         <InvoicePreview 
-          key={url}
-          fileUrl={url} 
-          extractedData={extractedData[index]}
+          key={latestFileUrl}
+          fileUrl={latestFileUrl} 
+          extractedData={latestExtractedData}
           onCancel={handleCancel}
           userPlan={userPlan}
-          isSelected={true} // Always selected by default
+          isSelected={true}
         />
-      ))}
+      )}
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { FieldMappingControls } from './preview/FieldMappingControls';
 import { PreviewContent } from './preview/PreviewContent';
 
 interface InvoicePreviewProps {
@@ -8,7 +7,6 @@ interface InvoicePreviewProps {
   extractedData?: Record<string, any>;
   onCancel: () => void;
   userPlan?: 'free' | 'pro' | 'enterprise';
-  onSelect?: (selected: boolean) => void;
   isSelected?: boolean;
 }
 
@@ -17,8 +15,7 @@ export const InvoicePreview = ({
   extractedData, 
   onCancel,
   userPlan = 'free',
-  onSelect,
-  isSelected = false
+  isSelected = true
 }: InvoicePreviewProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -36,11 +33,6 @@ export const InvoicePreview = ({
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="space-y-6">
-        <FieldMappingControls
-          onSelect={onSelect}
-          isSelected={isSelected}
-        />
-
         <PreviewContent
           extractedData={extractedData || {}}
           userPlan={userPlan}

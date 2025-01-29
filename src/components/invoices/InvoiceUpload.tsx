@@ -2,7 +2,6 @@ import { FileUploadZone } from "./upload/FileUploadZone";
 import { UploadProgress } from "./upload/UploadProgress";
 import { InvoicePreview } from "./InvoicePreview";
 import { useFileUpload } from "./upload/useFileUpload";
-import { useState } from "react";
 
 interface InvoiceUploadProps {
   userPlan: 'free' | 'pro' | 'enterprise';
@@ -19,16 +18,6 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
     handleCancel,
     handleDrop,
   } = useFileUpload(userPlan);
-
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
-
-  const handleInvoiceSelect = (url: string, selected: boolean) => {
-    setSelectedInvoices(prev => 
-      selected 
-        ? [...prev, url]
-        : prev.filter(i => i !== url)
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -56,8 +45,7 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
           extractedData={extractedData[index]}
           onCancel={handleCancel}
           userPlan={userPlan}
-          onSelect={(selected) => handleInvoiceSelect(url, selected)}
-          isSelected={selectedInvoices.includes(url)}
+          isSelected={true} // Always selected by default
         />
       ))}
     </div>

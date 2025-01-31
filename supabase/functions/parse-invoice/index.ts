@@ -13,16 +13,16 @@ serve(async (req) => {
 
   try {
     const { fileUrl } = await req.json()
-    const pdfcoApiKey = Deno.env.get('PDFCO_API_KEY')
+    const openAiApiKey = Deno.env.get('OPENAI_API_KEY')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     console.log('Starting parse-invoice function with fileUrl:', fileUrl)
 
-    if (!fileUrl || !pdfcoApiKey) {
-      console.error('Missing required parameters:', { fileUrl: !!fileUrl, pdfcoApiKey: !!pdfcoApiKey })
+    if (!fileUrl || !openAiApiKey) {
+      console.error('Missing required parameters:', { fileUrl: !!fileUrl, openAiApiKey: !!openAiApiKey })
       return new Response(
-        JSON.stringify({ error: !fileUrl ? 'No file URL provided' : 'PDF.co API key not configured' }),
+        JSON.stringify({ error: !fileUrl ? 'No file URL provided' : 'OpenAI API key not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: !fileUrl ? 400 : 500 }
       )
     }
@@ -46,103 +46,90 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
 
-    // First try to parse using the PDF.co AI extractor
-    console.log('Attempting to parse with PDF.co AI extractor...')
-    const parseResponse = await fetch('https://api.pdf.co/v1/pdf/documentparser', {
+    // Convert PDF to base64
+    const pdfResponse = await fetch(signedUrl)
+    const pdfBuffer = await pdfResponse.arrayBuffer()
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
+
+    // Call OpenAI API with the PDF content
+    const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': pdfcoApiKey,
+        'Authorization': `Bearer ${openAiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: signedUrl,
-        async: false,
-        parseType: "Invoice",
-        templateName: "Auto",
-        outputFormat: "JSON"
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert at extracting information from invoices. Extract all relevant information and return it in a structured format."
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Please extract the following information from this invoice PDF: vendor name, invoice number, invoice date, due date, total amount, currency, tax amount, and subtotal. Return the data in a structured format."
+              },
+              {
+                type: "image",
+                image_url: {
+                  url: `data:application/pdf;base64,${base64Pdf}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 1000
       })
     })
 
-    console.log('PDF.co response status:', parseResponse.status)
-    const parseResult = await parseResponse.json()
-    console.log('PDF.co raw response:', parseResult)
+    if (!openAiResponse.ok) {
+      const error = await openAiResponse.json()
+      console.error('OpenAI API error:', error)
+      throw new Error('Failed to process invoice with OpenAI')
+    }
 
-    if (!parseResponse.ok || parseResult.error === true) {
-      console.error('Parse error:', parseResult)
-      
-      // Try fallback to text extraction if AI parsing fails
-      console.log('AI parsing failed, attempting text extraction...')
-      const textResponse = await fetch('https://api.pdf.co/v1/pdf/text', {
-        method: 'POST',
-        headers: {
-          'x-api-key': pdfcoApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: signedUrl,
-          async: false,
-          inline: false
-        })
-      })
+    const openAiData = await openAiResponse.json()
+    console.log('OpenAI raw response:', openAiData)
 
-      if (!textResponse.ok) {
-        console.error('Text extraction failed:', await textResponse.json())
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to parse document', 
-            details: parseResult 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        )
-      }
+    // Parse the OpenAI response to extract structured data
+    const content = openAiData.choices[0].message.content
+    
+    // Convert the OpenAI response into our expected format
+    let extractedData
+    try {
+      // Try to parse as JSON first
+      extractedData = JSON.parse(content)
+    } catch (e) {
+      // If not JSON, try to extract information using regex
+      console.log('Parsing OpenAI response as text:', content)
+      const vendorMatch = content.match(/vendor(?:\s?name)?:\s*([^\n]+)/i)
+      const invoiceNumberMatch = content.match(/invoice(?:\s?number)?:\s*([^\n]+)/i)
+      const invoiceDateMatch = content.match(/invoice(?:\s?date)?:\s*([^\n]+)/i)
+      const dueDateMatch = content.match(/due(?:\s?date)?:\s*([^\n]+)/i)
+      const totalMatch = content.match(/total(?:\s?amount)?:\s*[\$€£]?([\d,]+\.?\d{0,2})/i)
+      const currencyMatch = content.match(/currency:\s*([^\n]+)/i)
+      const taxMatch = content.match(/tax(?:\s?amount)?:\s*[\$€£]?([\d,]+\.?\d{0,2})/i)
+      const subtotalMatch = content.match(/subtotal:\s*[\$€£]?([\d,]+\.?\d{0,2})/i)
 
-      const textResult = await textResponse.json()
-      console.log('Text extraction result:', textResult)
-
-      // Extract basic information from text using regex patterns
-      const text = textResult.text || ''
-      const invoiceNumberMatch = text.match(/(?:Invoice|Reference|Bill)\s*(?:#|No|Number|ID)?[:\s]+([A-Z0-9-]+)/i)
-      const dateMatch = text.match(/(?:Date|Invoice Date)[:\s]+(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})/i)
-      const amountMatch = text.match(/(?:Total|Amount Due|Balance)[:\s]*[$€£]?([\d,]+\.?\d{0,2})/i)
-      const vendorMatch = text.match(/(?:From|Company|Vendor|Business Name)[:\s]+([^\n]{2,50})/i)
-
-      const transformedData = {
+      extractedData = {
         vendor_name: vendorMatch?.[1]?.trim() || '',
         invoice_number: invoiceNumberMatch?.[1]?.trim() || '',
-        invoice_date: dateMatch?.[1] || null,
-        due_date: null,
-        total_amount: amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0,
-        currency: text.includes('€') ? 'EUR' : text.includes('£') ? 'GBP' : 'USD',
-        subtotal: 0,
-        tax_amount: 0
+        invoice_date: invoiceDateMatch?.[1]?.trim() || null,
+        due_date: dueDateMatch?.[1]?.trim() || null,
+        total_amount: totalMatch ? parseFloat(totalMatch[1].replace(/,/g, '')) : 0,
+        currency: currencyMatch?.[1]?.trim() || 'USD',
+        tax_amount: taxMatch ? parseFloat(taxMatch[1].replace(/,/g, '')) : 0,
+        subtotal: subtotalMatch ? parseFloat(subtotalMatch[1].replace(/,/g, '')) : 0
       }
-
-      console.log('Extracted data from text:', transformedData)
-      return new Response(
-        JSON.stringify(transformedData),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     }
 
-    // Extract and transform the parsed data from successful AI parsing
-    const fields = parseResult.body || {}
-    console.log('Extracted raw fields:', fields)
-
-    const transformedData = {
-      vendor_name: fields.Vendor || fields.vendor_name || fields.Company || '',
-      invoice_number: fields.InvoiceNumber || fields.invoice_number || fields.Reference || '',
-      invoice_date: fields.InvoiceDate || fields.invoice_date || fields.Date || null,
-      due_date: fields.DueDate || fields.due_date || null,
-      total_amount: parseFloat(fields.TotalAmount || fields.total_amount || fields.Total || '0'),
-      currency: fields.Currency || fields.currency || 'USD',
-      subtotal: parseFloat(fields.Subtotal || fields.subtotal || '0'),
-      tax_amount: parseFloat(fields.Tax || fields.tax_amount || '0')
-    }
-
-    console.log('Transformed data being returned:', transformedData)
+    console.log('Extracted and transformed data:', extractedData)
 
     return new Response(
-      JSON.stringify(transformedData),
+      JSON.stringify(extractedData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

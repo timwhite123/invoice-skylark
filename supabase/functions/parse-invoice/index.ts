@@ -100,7 +100,7 @@ Your output must be a valid JSON object that adheres exactly to the schema above
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",

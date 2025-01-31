@@ -22,7 +22,10 @@ serve(async (req) => {
     if (!fileUrl || !openAiApiKey) {
       console.error('Missing required parameters:', { fileUrl: !!fileUrl, openAiApiKey: !!openAiApiKey })
       return new Response(
-        JSON.stringify({ error: !fileUrl ? 'No file URL provided' : 'OpenAI API key not configured' }),
+        JSON.stringify({ 
+          error: !fileUrl ? 'No file URL provided' : 'OpenAI API key not configured',
+          details: !fileUrl ? 'fileUrl is required' : 'OpenAI API key is not set in environment variables'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: !fileUrl ? 400 : 500 }
       )
     }
@@ -48,6 +51,14 @@ serve(async (req) => {
 
     // Convert PDF to base64
     const pdfResponse = await fetch(signedUrl)
+    if (!pdfResponse.ok) {
+      console.error('Failed to fetch PDF:', pdfResponse.status, pdfResponse.statusText)
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch PDF', details: `HTTP ${pdfResponse.status}: ${pdfResponse.statusText}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
     const pdfBuffer = await pdfResponse.arrayBuffer()
     const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
 
@@ -127,13 +138,30 @@ Your output must be a valid JSON object that adheres exactly to the schema above
     })
 
     if (!openAiResponse.ok) {
-      const error = await openAiResponse.json()
-      console.error('OpenAI API error:', error)
-      throw new Error('Failed to process invoice with OpenAI')
+      const error = await openAiResponse.text()
+      console.error('OpenAI API error response:', error)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to process invoice with OpenAI',
+          details: `OpenAI API returned ${openAiResponse.status}: ${error}`
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     const openAiData = await openAiResponse.json()
     console.log('OpenAI raw response:', openAiData)
+
+    if (!openAiData.choices?.[0]?.message?.content) {
+      console.error('Unexpected OpenAI response format:', openAiData)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid response from OpenAI',
+          details: 'The API response did not contain the expected data structure'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
 
     // Parse the OpenAI response to extract structured data
     const content = openAiData.choices[0].message.content
@@ -142,8 +170,14 @@ Your output must be a valid JSON object that adheres exactly to the schema above
     try {
       parsedData = JSON.parse(content)
     } catch (e) {
-      console.error('Error parsing OpenAI response as JSON:', e)
-      throw new Error('Failed to parse OpenAI response as JSON')
+      console.error('Error parsing OpenAI response as JSON:', e, 'Raw content:', content)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to parse OpenAI response as JSON',
+          details: e.message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
     // Transform the parsed data to match our database schema
@@ -176,7 +210,8 @@ Your output must be a valid JSON object that adheres exactly to the schema above
     return new Response(
       JSON.stringify({ 
         error: 'An unexpected error occurred while parsing the invoice',
-        details: error.message 
+        details: error.message,
+        stack: error.stack
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )

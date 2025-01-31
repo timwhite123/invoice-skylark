@@ -62,47 +62,6 @@ serve(async (req) => {
     const pdfBuffer = await pdfResponse.arrayBuffer()
     const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
 
-    const systemPrompt = `You are an expert invoice parser. Given the raw text of an invoice, please extract and return the key invoice details in a structured JSON format that strictly follows the schema provided below.
-
-Invoice Schema:
-{
-  "InvoiceID": "string",
-  "InvoiceNumber": "string",
-  "InvoiceDate": "YYYY-MM-DD",
-  "DueDate": "YYYY-MM-DD",
-  "SupplierName": "string",
-  "SupplierAddress": "string",
-  "SupplierContact": "string",
-  "SupplierEmail": "string",
-  "CustomerName": "string",
-  "CustomerAddress": "string",
-  "CustomerContact": "string",
-  "CustomerEmail": "string",
-  "PONumber": "string",
-  "PaymentTerms": "string",
-  "Currency": "string",
-  "SubTotal": number,
-  "TaxTotal": number,
-  "TaxPercentage": number,
-  "InvoiceTotal": number,
-  "Notes": "string",
-  "LineItems": [
-    {
-      "Description": "string",
-      "Quantity": number,
-      "UnitPrice": number,
-      "LineTotal": number,
-      "TaxAmount": number
-    }
-  ]
-}
-
-Your output must be a valid JSON object that adheres exactly to the schema above. Ensure that:
-* Dates are in YYYY-MM-DD format
-* Numeric fields (SubTotal, TaxTotal, TaxPercentage, InvoiceTotal, Quantity, UnitPrice, LineTotal, TaxAmount) are represented as numbers (not strings)
-* Only output the JSON object with no additional commentary or explanation`
-
-    // Call OpenAI API with the PDF content
     console.log('Calling OpenAI API...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -115,14 +74,14 @@ Your output must be a valid JSON object that adheres exactly to the schema above
         messages: [
           {
             role: "system",
-            content: systemPrompt
+            content: "You are an expert invoice parser. Extract key invoice details and return them in JSON format."
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Please extract the invoice information from this PDF and return it in the specified JSON format."
+                text: "Please extract the invoice information from this PDF and return it in JSON format."
               },
               {
                 type: "image",
@@ -182,20 +141,20 @@ Your output must be a valid JSON object that adheres exactly to the schema above
 
     // Transform the parsed data to match our database schema
     const transformedData = {
-      vendor_name: parsedData.SupplierName,
-      invoice_number: parsedData.InvoiceNumber,
-      invoice_date: parsedData.InvoiceDate,
-      due_date: parsedData.DueDate,
-      total_amount: parsedData.InvoiceTotal,
-      currency: parsedData.Currency,
-      payment_terms: parsedData.PaymentTerms,
-      purchase_order_number: parsedData.PONumber,
-      billing_address: parsedData.CustomerAddress,
-      shipping_address: parsedData.SupplierAddress,
-      notes: parsedData.Notes,
-      tax_amount: parsedData.TaxTotal,
-      subtotal: parsedData.SubTotal,
-      line_items: parsedData.LineItems
+      vendor_name: parsedData.vendor_name || parsedData.supplier_name,
+      invoice_number: parsedData.invoice_number,
+      invoice_date: parsedData.invoice_date,
+      due_date: parsedData.due_date,
+      total_amount: parsedData.total_amount || parsedData.invoice_total,
+      currency: parsedData.currency,
+      payment_terms: parsedData.payment_terms,
+      purchase_order_number: parsedData.purchase_order_number,
+      billing_address: parsedData.billing_address,
+      shipping_address: parsedData.shipping_address,
+      notes: parsedData.notes,
+      tax_amount: parsedData.tax_amount,
+      subtotal: parsedData.subtotal,
+      line_items: parsedData.line_items || []
     }
 
     console.log('Transformed data:', transformedData)

@@ -20,13 +20,11 @@ serve(async (req) => {
     console.log('Starting parse-invoice function with fileUrl:', fileUrl)
 
     if (!fileUrl || !openAiApiKey) {
+      const error = !fileUrl ? 'No file URL provided' : 'OpenAI API key not configured'
       console.error('Missing required parameters:', { fileUrl: !!fileUrl, openAiApiKey: !!openAiApiKey })
       return new Response(
-        JSON.stringify({ 
-          error: !fileUrl ? 'No file URL provided' : 'OpenAI API key not configured',
-          details: !fileUrl ? 'fileUrl is required' : 'OpenAI API key is not set in environment variables'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: !fileUrl ? 400 : 500 }
+        JSON.stringify({ error, details: !fileUrl ? 'fileUrl is required' : 'OpenAI API key is not set' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
@@ -49,7 +47,6 @@ serve(async (req) => {
 
     console.log('Generated signed URL:', signedUrl)
 
-    // Convert PDF to base64
     const pdfResponse = await fetch(signedUrl)
     if (!pdfResponse.ok) {
       console.error('Failed to fetch PDF:', pdfResponse.status, pdfResponse.statusText)
@@ -74,14 +71,37 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are an expert invoice parser. Extract key invoice details and return them in JSON format."
+            content: `You are an expert invoice parser. Extract and return invoice details in this exact JSON format:
+            {
+              "vendor_name": "string",
+              "invoice_number": "string",
+              "invoice_date": "YYYY-MM-DD",
+              "due_date": "YYYY-MM-DD",
+              "total_amount": number,
+              "currency": "string",
+              "payment_terms": "string",
+              "purchase_order_number": "string",
+              "billing_address": "string",
+              "shipping_address": "string",
+              "notes": "string",
+              "tax_amount": number,
+              "subtotal": number,
+              "line_items": [
+                {
+                  "description": "string",
+                  "quantity": number,
+                  "unit_price": number,
+                  "total": number
+                }
+              ]
+            }`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Please extract the invoice information from this PDF and return it in JSON format."
+                text: "Extract the invoice information from this PDF and return it in the specified JSON format. Ensure all dates are in YYYY-MM-DD format and all numeric values are numbers, not strings."
               },
               {
                 type: "image",
@@ -122,14 +142,11 @@ serve(async (req) => {
       )
     }
 
-    // Parse the OpenAI response to extract structured data
-    const content = openAiData.choices[0].message.content
-    
     let parsedData
     try {
-      parsedData = JSON.parse(content)
+      parsedData = JSON.parse(openAiData.choices[0].message.content)
     } catch (e) {
-      console.error('Error parsing OpenAI response as JSON:', e, 'Raw content:', content)
+      console.error('Error parsing OpenAI response as JSON:', e, 'Raw content:', openAiData.choices[0].message.content)
       return new Response(
         JSON.stringify({ 
           error: 'Failed to parse OpenAI response as JSON',
@@ -139,28 +156,10 @@ serve(async (req) => {
       )
     }
 
-    // Transform the parsed data to match our database schema
-    const transformedData = {
-      vendor_name: parsedData.vendor_name || parsedData.supplier_name,
-      invoice_number: parsedData.invoice_number,
-      invoice_date: parsedData.invoice_date,
-      due_date: parsedData.due_date,
-      total_amount: parsedData.total_amount || parsedData.invoice_total,
-      currency: parsedData.currency,
-      payment_terms: parsedData.payment_terms,
-      purchase_order_number: parsedData.purchase_order_number,
-      billing_address: parsedData.billing_address,
-      shipping_address: parsedData.shipping_address,
-      notes: parsedData.notes,
-      tax_amount: parsedData.tax_amount,
-      subtotal: parsedData.subtotal,
-      line_items: parsedData.line_items || []
-    }
-
-    console.log('Transformed data:', transformedData)
+    console.log('Successfully parsed OpenAI response:', parsedData)
 
     return new Response(
-      JSON.stringify(transformedData),
+      JSON.stringify(parsedData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { corsHeaders, createErrorResponse, getSignedUrl, fetchPdfContent } from './utils.ts'
+import { corsHeaders, createErrorResponse, getSignedUrl } from './utils.ts'
 import { parseInvoiceWithOpenAI } from './openai.ts'
 
 serve(async (req) => {
@@ -32,10 +32,8 @@ serve(async (req) => {
     const signedUrl = await getSignedUrl(supabase, fileUrl)
     console.log('Generated signed URL:', signedUrl)
 
-    const base64Pdf = await fetchPdfContent(signedUrl)
-    const parsedData = await parseInvoiceWithOpenAI(base64Pdf, openAiApiKey)
-    
-    console.log('Successfully parsed OpenAI response:', parsedData)
+    const parsedData = await parseInvoiceWithOpenAI(signedUrl, openAiApiKey)
+    console.log('Successfully parsed invoice data:', parsedData)
 
     return new Response(
       JSON.stringify(parsedData),

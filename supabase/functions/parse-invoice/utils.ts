@@ -7,7 +7,7 @@ export const createErrorResponse = (error: any, details?: string, status = 500) 
   console.error('Error:', error)
   return new Response(
     JSON.stringify({ 
-      error: 'An unexpected error occurred while parsing the invoice',
+      error: 'Failed to process invoice with OpenAI',
       details: details || error.message,
       stack: error.stack
     }),
@@ -30,14 +30,4 @@ export const getSignedUrl = async (supabase: any, fileUrl: string) => {
   }
 
   return signedUrl
-}
-
-export const fetchPdfContent = async (signedUrl: string) => {
-  const pdfResponse = await fetch(signedUrl)
-  if (!pdfResponse.ok) {
-    throw new Error(`Failed to fetch PDF: HTTP ${pdfResponse.status}: ${pdfResponse.statusText}`)
-  }
-  
-  const pdfBuffer = await pdfResponse.arrayBuffer()
-  return btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
 }

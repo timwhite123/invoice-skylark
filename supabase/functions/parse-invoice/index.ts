@@ -51,6 +51,46 @@ serve(async (req) => {
     const pdfBuffer = await pdfResponse.arrayBuffer()
     const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
 
+    const systemPrompt = `You are an expert invoice parser. Given the raw text of an invoice, please extract and return the key invoice details in a structured JSON format that strictly follows the schema provided below.
+
+Invoice Schema:
+{
+  "InvoiceID": "string",
+  "InvoiceNumber": "string",
+  "InvoiceDate": "YYYY-MM-DD",
+  "DueDate": "YYYY-MM-DD",
+  "SupplierName": "string",
+  "SupplierAddress": "string",
+  "SupplierContact": "string",
+  "SupplierEmail": "string",
+  "CustomerName": "string",
+  "CustomerAddress": "string",
+  "CustomerContact": "string",
+  "CustomerEmail": "string",
+  "PONumber": "string",
+  "PaymentTerms": "string",
+  "Currency": "string",
+  "SubTotal": number,
+  "TaxTotal": number,
+  "TaxPercentage": number,
+  "InvoiceTotal": number,
+  "Notes": "string",
+  "LineItems": [
+    {
+      "Description": "string",
+      "Quantity": number,
+      "UnitPrice": number,
+      "LineTotal": number,
+      "TaxAmount": number
+    }
+  ]
+}
+
+Your output must be a valid JSON object that adheres exactly to the schema above. Ensure that:
+* Dates are in YYYY-MM-DD format
+* Numeric fields (SubTotal, TaxTotal, TaxPercentage, InvoiceTotal, Quantity, UnitPrice, LineTotal, TaxAmount) are represented as numbers (not strings)
+* Only output the JSON object with no additional commentary or explanation`
+
     // Call OpenAI API with the PDF content
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -63,14 +103,14 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are an expert at extracting information from invoices. Extract all relevant information and return it in a structured format."
+            content: systemPrompt
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Please extract the following information from this invoice PDF: vendor name, invoice number, invoice date, due date, total amount, currency, tax amount, and subtotal. Return the data in a structured format."
+                text: "Please extract the invoice information from this PDF and return it in the specified JSON format."
               },
               {
                 type: "image",
@@ -81,7 +121,7 @@ serve(async (req) => {
             ]
           }
         ],
-        max_tokens: 1000
+        max_tokens: 2000
       })
     })
 
@@ -97,39 +137,36 @@ serve(async (req) => {
     // Parse the OpenAI response to extract structured data
     const content = openAiData.choices[0].message.content
     
-    // Convert the OpenAI response into our expected format
-    let extractedData
+    let parsedData
     try {
-      // Try to parse as JSON first
-      extractedData = JSON.parse(content)
+      parsedData = JSON.parse(content)
     } catch (e) {
-      // If not JSON, try to extract information using regex
-      console.log('Parsing OpenAI response as text:', content)
-      const vendorMatch = content.match(/vendor(?:\s?name)?:\s*([^\n]+)/i)
-      const invoiceNumberMatch = content.match(/invoice(?:\s?number)?:\s*([^\n]+)/i)
-      const invoiceDateMatch = content.match(/invoice(?:\s?date)?:\s*([^\n]+)/i)
-      const dueDateMatch = content.match(/due(?:\s?date)?:\s*([^\n]+)/i)
-      const totalMatch = content.match(/total(?:\s?amount)?:\s*[\$€£]?([\d,]+\.?\d{0,2})/i)
-      const currencyMatch = content.match(/currency:\s*([^\n]+)/i)
-      const taxMatch = content.match(/tax(?:\s?amount)?:\s*[\$€£]?([\d,]+\.?\d{0,2})/i)
-      const subtotalMatch = content.match(/subtotal:\s*[\$€£]?([\d,]+\.?\d{0,2})/i)
-
-      extractedData = {
-        vendor_name: vendorMatch?.[1]?.trim() || '',
-        invoice_number: invoiceNumberMatch?.[1]?.trim() || '',
-        invoice_date: invoiceDateMatch?.[1]?.trim() || null,
-        due_date: dueDateMatch?.[1]?.trim() || null,
-        total_amount: totalMatch ? parseFloat(totalMatch[1].replace(/,/g, '')) : 0,
-        currency: currencyMatch?.[1]?.trim() || 'USD',
-        tax_amount: taxMatch ? parseFloat(taxMatch[1].replace(/,/g, '')) : 0,
-        subtotal: subtotalMatch ? parseFloat(subtotalMatch[1].replace(/,/g, '')) : 0
-      }
+      console.error('Error parsing OpenAI response as JSON:', e)
+      throw new Error('Failed to parse OpenAI response as JSON')
     }
 
-    console.log('Extracted and transformed data:', extractedData)
+    // Transform the parsed data to match our database schema
+    const transformedData = {
+      vendor_name: parsedData.SupplierName,
+      invoice_number: parsedData.InvoiceNumber,
+      invoice_date: parsedData.InvoiceDate,
+      due_date: parsedData.DueDate,
+      total_amount: parsedData.InvoiceTotal,
+      currency: parsedData.Currency,
+      payment_terms: parsedData.PaymentTerms,
+      purchase_order_number: parsedData.PONumber,
+      billing_address: parsedData.CustomerAddress,
+      shipping_address: parsedData.SupplierAddress,
+      notes: parsedData.Notes,
+      tax_amount: parsedData.TaxTotal,
+      subtotal: parsedData.SubTotal,
+      line_items: parsedData.LineItems
+    }
+
+    console.log('Transformed data:', transformedData)
 
     return new Response(
-      JSON.stringify(extractedData),
+      JSON.stringify(transformedData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

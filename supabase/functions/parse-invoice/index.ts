@@ -92,6 +92,7 @@ Your output must be a valid JSON object that adheres exactly to the schema above
 * Only output the JSON object with no additional commentary or explanation`
 
     // Call OpenAI API with the PDF content
+    console.log('Calling OpenAI API...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

@@ -104,7 +104,7 @@ serve(async (req) => {
                 text: "Extract the invoice information from this PDF and return it in the specified JSON format. Ensure all dates are in YYYY-MM-DD format and all numeric values are numbers, not strings."
               },
               {
-                type: "image",
+                type: "image_url",
                 image_url: {
                   url: `data:application/pdf;base64,${base64Pdf}`
                 }

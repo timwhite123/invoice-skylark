@@ -5,9 +5,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PDFDocument } from 'pdf-lib';
 import imageCompression from 'browser-image-compression';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
 
 // Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const FILE_SIZE_LIMITS = {
   free: 25 * 1024 * 1024, // 25MB

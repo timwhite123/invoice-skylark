@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { pdfToImage } from 'pdf-to-img';
 
 const FILE_SIZE_LIMITS = {
   free: 25 * 1024 * 1024, // 25MB
@@ -25,6 +26,29 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     setExtractedData([]);
     setCurrentFileIndex(0);
     setUploadProgress(0);
+  };
+
+  const convertPdfToImage = async (file: File): Promise<File> => {
+    try {
+      console.log('Converting PDF to image:', file.name);
+      const imageBlob = await pdfToImage(file, {
+        scale: 2.0, // Higher quality
+        page: 1,    // First page only
+      });
+      
+      // Convert blob to File
+      const imageFile = new File(
+        [imageBlob], 
+        file.name.replace('.pdf', '.png'),
+        { type: 'image/png' }
+      );
+      
+      console.log('PDF converted to image successfully');
+      return imageFile;
+    } catch (error) {
+      console.error('Error converting PDF to image:', error);
+      throw new Error('Failed to convert PDF to image');
+    }
   };
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -77,13 +101,15 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
 
         console.log('Processing file:', file.name);
         
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        // Convert PDF to image
+        const imageFile = await convertPdfToImage(file);
         
-        console.log('Uploading file to Supabase storage:', fileName);
+        const fileName = `${crypto.randomUUID()}.png`;
+        
+        console.log('Uploading converted image to Supabase storage:', fileName);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('invoice-files')
-          .upload(`${fileName}`, file);
+          .upload(fileName, imageFile);
 
         if (uploadError) {
           console.error('File upload error:', uploadError);

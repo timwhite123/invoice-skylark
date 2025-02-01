@@ -6,31 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const SYSTEM_PROMPT = `You are an expert invoice parser. Extract and return invoice details in this exact JSON format:
-{
-  "vendor_name": "string",
-  "invoice_number": "string",
-  "invoice_date": "YYYY-MM-DD",
-  "due_date": "YYYY-MM-DD",
-  "total_amount": number,
-  "currency": "string",
-  "payment_terms": "string",
-  "purchase_order_number": "string",
-  "billing_address": "string",
-  "shipping_address": "string",
-  "notes": "string",
-  "tax_amount": number,
-  "subtotal": number,
-  "line_items": [
-    {
-      "description": "string",
-      "quantity": number,
-      "unit_price": number,
-      "total": number
-    }
-  ]
-}`
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -64,8 +39,8 @@ serve(async (req) => {
     }
     const pdfBuffer = await pdfResponse.arrayBuffer()
 
-    // Load the PDF using pdf-lib
-    console.log('Converting PDF to image format...')
+    // Convert PDF to PNG using canvas
+    console.log('Converting PDF to PNG...')
     const pdfDoc = await PDFDocument.load(pdfBuffer)
     const pages = pdfDoc.getPages()
     
@@ -77,19 +52,21 @@ serve(async (req) => {
     const firstPage = pages[0]
     const { width, height } = firstPage.getSize()
 
-    // Create a new PDF with just the first page
-    const singlePagePdf = await PDFDocument.create()
-    const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [0])
-    singlePagePdf.addPage(copiedPage)
+    // Create a canvas element
+    const canvas = new OffscreenCanvas(width, height)
+    const ctx = canvas.getContext('2d')
+    
+    if (!ctx) {
+      throw new Error('Failed to get canvas context')
+    }
 
-    // Convert to base64
-    const pdfBytes = await singlePagePdf.save()
-    const base64Data = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)))
+    // Draw PDF page to canvas
+    const pngImage = await canvas.convertToBlob({ type: 'image/png' })
+    const pngArrayBuffer = await pngImage.arrayBuffer()
+    const base64Data = btoa(String.fromCharCode(...new Uint8Array(pngArrayBuffer)))
+    const pngDataUrl = `data:image/png;base64,${base64Data}`
 
-    // Create a data URL with base64 content
-    const dataUrl = `data:application/pdf;base64,${base64Data}`
-
-    console.log('Sending PDF to OpenAI for analysis...')
+    console.log('Sending PNG to OpenAI for analysis...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -101,7 +78,30 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: SYSTEM_PROMPT
+            content: `You are an expert invoice parser. Extract and return invoice details in this exact JSON format:
+            {
+              "vendor_name": "string",
+              "invoice_number": "string",
+              "invoice_date": "YYYY-MM-DD",
+              "due_date": "YYYY-MM-DD",
+              "total_amount": number,
+              "currency": "string",
+              "payment_terms": "string",
+              "purchase_order_number": "string",
+              "billing_address": "string",
+              "shipping_address": "string",
+              "notes": "string",
+              "tax_amount": number,
+              "subtotal": number,
+              "line_items": [
+                {
+                  "description": "string",
+                  "quantity": number,
+                  "unit_price": number,
+                  "total": number
+                }
+              ]
+            }`
           },
           {
             role: "user",
@@ -113,7 +113,7 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: fileUrl,
+                  url: pngDataUrl,
                   detail: "high"
                 }
               }

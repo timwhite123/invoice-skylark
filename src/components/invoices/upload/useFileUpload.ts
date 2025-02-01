@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { PDFDocument } from 'pdf-lib';
 import imageCompression from 'browser-image-compression';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Initialize PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const FILE_SIZE_LIMITS = {
   free: 25 * 1024 * 1024, // 25MB
@@ -33,44 +37,32 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     try {
       console.log('Converting PDF to image:', file.name);
       
-      // Create a URL for the PDF file
-      const pdfUrl = URL.createObjectURL(file);
+      // Load the PDF file
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
       
-      // Create an iframe to load the PDF
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
+      // Get the first page
+      const page = await pdf.getPage(1);
       
-      // Wait for the PDF to load in the iframe
-      await new Promise((resolve) => {
-        iframe.onload = resolve;
-        iframe.src = pdfUrl;
-      });
+      // Set scale for better quality
+      const scale = 2;
+      const viewport = page.getViewport({ scale });
       
-      // Create a canvas
+      // Prepare canvas
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       if (!context) throw new Error('Could not get canvas context');
       
-      // Set canvas dimensions based on the iframe content
-      const scale = 2; // Increase for better quality
-      canvas.width = iframe.contentWindow!.document.body.scrollWidth * scale;
-      canvas.height = iframe.contentWindow!.document.body.scrollHeight * scale;
+      // Set canvas dimensions
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
       
-      // Draw the PDF content to canvas
-      context.scale(scale, scale);
-      context.drawWindow(
-        iframe.contentWindow!,
-        0,
-        0,
-        iframe.contentWindow!.document.body.scrollWidth,
-        iframe.contentWindow!.document.body.scrollHeight,
-        'rgb(255,255,255)'
-      );
-      
-      // Clean up
-      URL.revokeObjectURL(pdfUrl);
-      document.body.removeChild(iframe);
+      // Render PDF page to canvas
+      await page.render({
+        canvasContext: context,
+        viewport: viewport,
+      }).promise;
       
       // Get blob from canvas
       const blob = await new Promise<Blob>((resolve) => {
@@ -80,10 +72,13 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
       });
       
       // Compress the image
-      const compressedFile = await imageCompression(new File([blob], 'temp.png', { type: 'image/png' }), {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 2048,
-      });
+      const compressedFile = await imageCompression(
+        new File([blob], 'temp.png', { type: 'image/png' }), 
+        {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 2048,
+        }
+      );
       
       // Create final File object
       const imageFile = new File(

@@ -64,8 +64,8 @@ serve(async (req) => {
     }
     const pdfBuffer = await pdfResponse.arrayBuffer()
 
-    // Load the PDF document
-    console.log('Loading PDF document...')
+    // Convert PDF to PNG using pdf-lib
+    console.log('Converting PDF to PNG...')
     const pdfDoc = await PDFDocument.load(pdfBuffer)
     const pages = pdfDoc.getPages()
     

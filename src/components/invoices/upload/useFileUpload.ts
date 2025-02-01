@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Initialize PDF.js worker with a more reliable CDN source
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.min.js';
+// Initialize PDF.js worker with local file
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
 const FILE_SIZE_LIMITS = {
   free: 25 * 1024 * 1024, // 25MB

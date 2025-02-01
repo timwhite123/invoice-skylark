@@ -33,29 +33,44 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     try {
       console.log('Converting PDF to image:', file.name);
       
-      // Read the PDF file
-      const arrayBuffer = await file.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      const page = await pdfDoc.getPage(0);
+      // Create a URL for the PDF file
+      const pdfUrl = URL.createObjectURL(file);
       
-      // Get page dimensions
-      const { width, height } = page.getSize();
+      // Create an iframe to load the PDF
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
       
-      // Create a canvas element
+      // Wait for the PDF to load in the iframe
+      await new Promise((resolve) => {
+        iframe.onload = resolve;
+        iframe.src = pdfUrl;
+      });
+      
+      // Create a canvas
       const canvas = document.createElement('canvas');
-      const scale = 2; // Increase for better quality
-      canvas.width = width * scale;
-      canvas.height = height * scale;
-      
-      // Render PDF page to canvas
       const context = canvas.getContext('2d');
       if (!context) throw new Error('Could not get canvas context');
       
-      // Convert PDF page to image
-      const imageData = await page.render({
-        viewport: { width: canvas.width, height: canvas.height },
-        background: 'white',
-      });
+      // Set canvas dimensions based on the iframe content
+      const scale = 2; // Increase for better quality
+      canvas.width = iframe.contentWindow!.document.body.scrollWidth * scale;
+      canvas.height = iframe.contentWindow!.document.body.scrollHeight * scale;
+      
+      // Draw the PDF content to canvas
+      context.scale(scale, scale);
+      context.drawWindow(
+        iframe.contentWindow!,
+        0,
+        0,
+        iframe.contentWindow!.document.body.scrollWidth,
+        iframe.contentWindow!.document.body.scrollHeight,
+        'rgb(255,255,255)'
+      );
+      
+      // Clean up
+      URL.revokeObjectURL(pdfUrl);
+      document.body.removeChild(iframe);
       
       // Get blob from canvas
       const blob = await new Promise<Blob>((resolve) => {

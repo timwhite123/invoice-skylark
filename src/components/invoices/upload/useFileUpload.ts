@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Initialize PDF.js worker with local file
+// Initialize PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
 const FILE_SIZE_LIMITS = {
@@ -18,88 +18,22 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
-  const [fileUrls, setFileUrls] = useState<string[]>([]);
-  const [extractedData, setExtractedData] = useState<Record<string, any>[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleCancel = () => {
     setFiles([]);
-    setFileUrls([]);
-    setExtractedData([]);
     setCurrentFileIndex(0);
     setUploadProgress(0);
   };
 
-  const convertPdfToImage = async (file: File): Promise<File> => {
+  const convertPdfToImage = async (file: File): Promise<ArrayBuffer> => {
     try {
-      console.log('Converting PDF to image:', file.name);
-      
-      // Load the PDF file
-      const arrayBuffer = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      
-      // Add error handling for the loading task
-      loadingTask.onPassword = () => {
-        throw new Error('Password protected PDFs are not supported');
-      };
-      
-      const pdf = await loadingTask.promise;
-      
-      // Get the first page
-      const page = await pdf.getPage(1);
-      
-      // Set scale for better quality
-      const scale = 2;
-      const viewport = page.getViewport({ scale });
-      
-      // Create a canvas element
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      
-      // Get the context and render the page
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (!context) throw new Error('Could not get canvas context');
-      
-      try {
-        await page.render({
-          canvasContext: context,
-          viewport: viewport,
-        }).promise;
-      } catch (renderError) {
-        console.error('Error rendering PDF:', renderError);
-        throw new Error('Failed to render PDF page');
-      }
-      
-      // Convert canvas to blob with error handling
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        try {
-          canvas.toBlob(
-            (b) => {
-              if (b) resolve(b);
-              else reject(new Error('Failed to create blob from canvas'));
-            },
-            'image/png',
-            0.95
-          );
-        } catch (blobError) {
-          reject(new Error('Failed to convert canvas to blob'));
-        }
-      });
-      
-      // Create final File object
-      const imageFile = new File(
-        [blob], 
-        file.name.replace('.pdf', '.png'),
-        { type: 'image/png' }
-      );
-      
-      console.log('PDF converted to image successfully');
-      return imageFile;
+      console.log('Processing PDF:', file.name);
+      return await file.arrayBuffer();
     } catch (error) {
-      console.error('Error converting PDF to image:', error);
-      throw new Error('Failed to convert PDF to image');
+      console.error('Error processing PDF:', error);
+      throw new Error('Failed to process PDF');
     }
   };
 
@@ -112,7 +46,7 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     if (acceptedFiles.length > maxFiles) {
       toast({
         title: "Too many files",
-        description: `${userPlan === 'free' ? 'Free plan allows only 1 file' : `Maximum ${maxFiles} files`} at a time. Upgrade to process more files.`,
+        description: `${userPlan === 'free' ? 'Free plan allows only 1 file' : `Maximum ${maxFiles} files`} at a time.`,
         variant: "destructive",
       });
       return;
@@ -122,17 +56,7 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     if (oversizedFiles.length > 0) {
       toast({
         title: "File too large",
-        description: `Maximum file size for ${userPlan} plan is ${sizeLimit / (1024 * 1024)}MB. Please upgrade your plan for larger files.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const invalidFiles = acceptedFiles.filter(file => file.type !== 'application/pdf');
-    if (invalidFiles.length > 0) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload PDF files only",
+        description: `Maximum file size for ${userPlan} plan is ${sizeLimit / (1024 * 1024)}MB.`,
         variant: "destructive",
       });
       return;
@@ -153,15 +77,17 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
 
         console.log('Processing file:', file.name);
         
-        // Convert PDF to image
-        const imageFile = await convertPdfToImage(file);
+        // Convert PDF to array buffer
+        const pdfBuffer = await convertPdfToImage(file);
         
-        const fileName = `${crypto.randomUUID()}.png`;
+        const fileName = `${crypto.randomUUID()}.pdf`;
         
-        console.log('Uploading converted image to Supabase storage:', fileName);
+        console.log('Uploading PDF to Supabase storage:', fileName);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('invoice-files')
-          .upload(fileName, imageFile);
+          .upload(fileName, pdfBuffer, {
+            contentType: 'application/pdf'
+          });
 
         if (uploadError) {
           console.error('File upload error:', uploadError);
@@ -173,7 +99,6 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
           .getPublicUrl(fileName);
 
         console.log('File uploaded successfully, public URL:', publicUrl);
-        setFileUrls(prev => [...prev, publicUrl]);
 
         console.log('Invoking parse-invoice function with URL:', publicUrl);
         const { data: parseData, error: parseError } = await supabase.functions
@@ -187,7 +112,6 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
         }
 
         console.log('Received parsed invoice data:', parseData);
-        setExtractedData(prev => [...prev, parseData]);
 
         console.log('Saving invoice to database...');
         const { error: dbError } = await supabase
@@ -206,12 +130,9 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
             purchase_order_number: parseData.purchase_order_number,
             billing_address: parseData.billing_address,
             shipping_address: parseData.shipping_address,
-            payment_method: parseData.payment_method,
-            discount_amount: parseData.discount_amount,
-            additional_fees: parseData.additional_fees,
+            notes: parseData.notes,
             tax_amount: parseData.tax_amount,
             subtotal: parseData.subtotal,
-            notes: parseData.notes,
           });
 
         if (dbError) {
@@ -238,6 +159,7 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
       });
     } finally {
       setIsUploading(false);
+      handleCancel();
     }
   }, [toast, queryClient, userPlan]);
 
@@ -246,8 +168,6 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     uploadProgress,
     files,
     currentFileIndex,
-    fileUrls,
-    extractedData,
     handleCancel,
     handleDrop,
   };

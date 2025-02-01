@@ -2,13 +2,10 @@ import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { PDFDocument } from 'pdf-lib';
-import imageCompression from 'browser-image-compression';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
 
 // Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 
 const FILE_SIZE_LIMITS = {
   free: 25 * 1024 * 1024, // 25MB
@@ -50,40 +47,30 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
       const scale = 2;
       const viewport = page.getViewport({ scale });
       
-      // Prepare canvas
+      // Create a canvas element
       const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Could not get canvas context');
-      
-      // Set canvas dimensions
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       
-      // Render PDF page to canvas
+      // Get the context and render the page
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Could not get canvas context');
+      
       await page.render({
         canvasContext: context,
         viewport: viewport,
       }).promise;
       
-      // Get blob from canvas
+      // Convert canvas to blob
       const blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-        }, 'image/png');
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+        }, 'image/png', 0.95);
       });
-      
-      // Compress the image
-      const compressedFile = await imageCompression(
-        new File([blob], 'temp.png', { type: 'image/png' }), 
-        {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 2048,
-        }
-      );
       
       // Create final File object
       const imageFile = new File(
-        [compressedFile], 
+        [blob], 
         file.name.replace('.pdf', '.png'),
         { type: 'image/png' }
       );

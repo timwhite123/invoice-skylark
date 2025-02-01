@@ -64,8 +64,8 @@ serve(async (req) => {
     }
     const pdfBuffer = await pdfResponse.arrayBuffer()
 
-    // Convert PDF to PNG using pdf-lib
-    console.log('Converting PDF to PNG...')
+    // Load the PDF using pdf-lib
+    console.log('Converting PDF to image format...')
     const pdfDoc = await PDFDocument.load(pdfBuffer)
     const pages = pdfDoc.getPages()
     
@@ -84,10 +84,10 @@ serve(async (req) => {
 
     // Convert to base64
     const pdfBytes = await singlePagePdf.save()
-    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)))
+    const base64Data = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)))
 
-    // Create a data URL with PNG MIME type
-    const dataUrl = `data:image/png;base64,${base64Pdf}`
+    // Create a data URL with JPEG MIME type (more widely supported than PNG)
+    const dataUrl = `data:image/jpeg;base64,${base64Data}`
 
     console.log('Sending PDF to OpenAI for analysis...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -113,7 +113,8 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: dataUrl
+                  url: dataUrl,
+                  detail: "high"
                 }
               }
             ]

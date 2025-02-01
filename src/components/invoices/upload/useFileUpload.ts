@@ -2,10 +2,6 @@ import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
 const FILE_SIZE_LIMITS = {
   free: 25 * 1024 * 1024, // 25MB
@@ -18,6 +14,8 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [fileUrls, setFileUrls] = useState<string[]>([]);
+  const [extractedData, setExtractedData] = useState<Record<string, any>[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -25,16 +23,8 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     setFiles([]);
     setCurrentFileIndex(0);
     setUploadProgress(0);
-  };
-
-  const convertPdfToImage = async (file: File): Promise<ArrayBuffer> => {
-    try {
-      console.log('Processing PDF:', file.name);
-      return await file.arrayBuffer();
-    } catch (error) {
-      console.error('Error processing PDF:', error);
-      throw new Error('Failed to process PDF');
-    }
+    setFileUrls([]);
+    setExtractedData([]);
   };
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -67,6 +57,9 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     setUploadProgress(0);
 
     try {
+      const newFileUrls: string[] = [];
+      const newExtractedData: Record<string, any>[] = [];
+
       for (let i = 0; i < acceptedFiles.length; i++) {
         const file = acceptedFiles[i];
         setCurrentFileIndex(i);
@@ -77,15 +70,12 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
 
         console.log('Processing file:', file.name);
         
-        // Convert PDF to array buffer
-        const pdfBuffer = await convertPdfToImage(file);
-        
         const fileName = `${crypto.randomUUID()}.pdf`;
         
         console.log('Uploading PDF to Supabase storage:', fileName);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('invoice-files')
-          .upload(fileName, pdfBuffer, {
+          .upload(fileName, file, {
             contentType: 'application/pdf'
           });
 
@@ -99,6 +89,7 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
           .getPublicUrl(fileName);
 
         console.log('File uploaded successfully, public URL:', publicUrl);
+        newFileUrls.push(publicUrl);
 
         console.log('Invoking parse-invoice function with URL:', publicUrl);
         const { data: parseData, error: parseError } = await supabase.functions
@@ -112,6 +103,7 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
         }
 
         console.log('Received parsed invoice data:', parseData);
+        newExtractedData.push(parseData);
 
         console.log('Saving invoice to database...');
         const { error: dbError } = await supabase
@@ -141,7 +133,10 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
         }
       }
 
+      setFileUrls(newFileUrls);
+      setExtractedData(newExtractedData);
       setUploadProgress(100);
+      
       toast({
         title: "Upload complete",
         description: `Successfully processed ${files.length} invoice${files.length > 1 ? 's' : ''}`,
@@ -159,7 +154,9 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
       });
     } finally {
       setIsUploading(false);
-      handleCancel();
+      setFiles([]);
+      setCurrentFileIndex(0);
+      setUploadProgress(0);
     }
   }, [toast, queryClient, userPlan]);
 
@@ -168,6 +165,8 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     uploadProgress,
     files,
     currentFileIndex,
+    fileUrls,
+    extractedData,
     handleCancel,
     handleDrop,
   };

@@ -20,8 +20,8 @@ export const InvoiceUpload = ({ userPlan }: InvoiceUploadProps) => {
   } = useFileUpload(userPlan);
 
   // Get only the most recent file
-  const latestFileUrl = fileUrls[fileUrls.length - 1];
-  const latestExtractedData = extractedData[extractedData.length - 1];
+  const latestFileUrl = fileUrls && fileUrls.length > 0 ? fileUrls[fileUrls.length - 1] : null;
+  const latestExtractedData = extractedData && extractedData.length > 0 ? extractedData[extractedData.length - 1] : undefined;
 
   return (
     <div className="space-y-6">

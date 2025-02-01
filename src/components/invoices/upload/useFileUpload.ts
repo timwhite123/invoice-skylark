@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+// Initialize PDF.js worker with CDN source
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const FILE_SIZE_LIMITS = {
   free: 25 * 1024 * 1024, // 25MB
@@ -31,57 +31,57 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
     setUploadProgress(0);
   };
 
-const convertPdfToImage = async (file: File): Promise<File> => {
-  try {
-    console.log('Converting PDF to image:', file.name);
-    
-    // Load the PDF file
-    const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
-    
-    // Get the first page
-    const page = await pdf.getPage(1);
-    
-    // Set scale for better quality
-    const scale = 2;
-    const viewport = page.getViewport({ scale });
-    
-    // Create a canvas element
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    
-    // Get the context and render the page
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Could not get canvas context');
-    
-    await page.render({
-      canvasContext: context,
-      viewport: viewport,
-    }).promise;
-    
-    // Convert canvas to blob
-    const blob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob((b) => {
-        if (b) resolve(b);
-      }, 'image/png', 0.95);
-    });
-    
-    // Create final File object
-    const imageFile = new File(
-      [blob], 
-      file.name.replace('.pdf', '.png'),
-      { type: 'image/png' }
-    );
-    
-    console.log('PDF converted to image successfully');
-    return imageFile;
-  } catch (error) {
-    console.error('Error converting PDF to image:', error);
-    throw new Error('Failed to convert PDF to image');
-  }
-};
+  const convertPdfToImage = async (file: File): Promise<File> => {
+    try {
+      console.log('Converting PDF to image:', file.name);
+      
+      // Load the PDF file
+      const arrayBuffer = await file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      
+      // Get the first page
+      const page = await pdf.getPage(1);
+      
+      // Set scale for better quality
+      const scale = 2;
+      const viewport = page.getViewport({ scale });
+      
+      // Create a canvas element
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      
+      // Get the context and render the page
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Could not get canvas context');
+      
+      await page.render({
+        canvasContext: context,
+        viewport: viewport,
+      }).promise;
+      
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+        }, 'image/png', 0.95);
+      });
+      
+      // Create final File object
+      const imageFile = new File(
+        [blob], 
+        file.name.replace('.pdf', '.png'),
+        { type: 'image/png' }
+      );
+      
+      console.log('PDF converted to image successfully');
+      return imageFile;
+    } catch (error) {
+      console.error('Error converting PDF to image:', error);
+      throw new Error('Failed to convert PDF to image');
+    }
+  };
 
   const handleDrop = useCallback(async (acceptedFiles: File[]) => {
     console.log('Starting file upload process with files:', acceptedFiles.map(f => ({ name: f.name, size: f.size })));

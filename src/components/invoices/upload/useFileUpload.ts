@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Initialize PDF.js worker with CDN source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Initialize PDF.js worker with a more reliable CDN source
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.min.js';
 
 const FILE_SIZE_LIMITS = {
   free: 25 * 1024 * 1024, // 25MB
@@ -38,6 +38,12 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
       // Load the PDF file
       const arrayBuffer = await file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      
+      // Add error handling for the loading task
+      loadingTask.onPassword = () => {
+        throw new Error('Password protected PDFs are not supported');
+      };
+      
       const pdf = await loadingTask.promise;
       
       // Get the first page
@@ -53,19 +59,33 @@ export const useFileUpload = (userPlan: 'free' | 'pro' | 'enterprise') => {
       canvas.height = viewport.height;
       
       // Get the context and render the page
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext('2d', { willReadFrequently: true });
       if (!context) throw new Error('Could not get canvas context');
       
-      await page.render({
-        canvasContext: context,
-        viewport: viewport,
-      }).promise;
+      try {
+        await page.render({
+          canvasContext: context,
+          viewport: viewport,
+        }).promise;
+      } catch (renderError) {
+        console.error('Error rendering PDF:', renderError);
+        throw new Error('Failed to render PDF page');
+      }
       
-      // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((b) => {
-          if (b) resolve(b);
-        }, 'image/png', 0.95);
+      // Convert canvas to blob with error handling
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        try {
+          canvas.toBlob(
+            (b) => {
+              if (b) resolve(b);
+              else reject(new Error('Failed to create blob from canvas'));
+            },
+            'image/png',
+            0.95
+          );
+        } catch (blobError) {
+          reject(new Error('Failed to convert canvas to blob'));
+        }
       });
       
       // Create final File object

@@ -86,8 +86,8 @@ serve(async (req) => {
     const pdfBytes = await singlePagePdf.save()
     const base64Data = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)))
 
-    // Create a data URL with JPEG MIME type (more widely supported than PNG)
-    const dataUrl = `data:image/jpeg;base64,${base64Data}`
+    // Create a data URL with base64 content
+    const dataUrl = `data:application/pdf;base64,${base64Data}`
 
     console.log('Sending PDF to OpenAI for analysis...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -113,7 +113,7 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: dataUrl,
+                  url: fileUrl,
                   detail: "high"
                 }
               }

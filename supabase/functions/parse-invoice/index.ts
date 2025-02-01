@@ -6,8 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const SYSTEM_PROMPT = `You are an expert invoice parser. Extract and return the key invoice details in a structured JSON format strictly following this schema:
-
+const SYSTEM_PROMPT = `You are an expert invoice parser. Extract and return invoice details in this exact JSON format:
 {
   "vendor_name": "string",
   "invoice_number": "string",
@@ -21,14 +20,16 @@ const SYSTEM_PROMPT = `You are an expert invoice parser. Extract and return the 
   "shipping_address": "string",
   "notes": "string",
   "tax_amount": number,
-  "subtotal": number
-}
-
-Ensure:
-* Dates are in YYYY-MM-DD format
-* Numeric fields are numbers (not strings)
-* If a field cannot be extracted, return null for that field
-* Respond with JSON only, no extra text.`
+  "subtotal": number,
+  "line_items": [
+    {
+      "description": "string",
+      "quantity": number,
+      "unit_price": number,
+      "total": number
+    }
+  ]
+}`
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -85,6 +86,9 @@ serve(async (req) => {
     const pdfBytes = await singlePagePdf.save()
     const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)))
 
+    // Create a data URL with PNG MIME type
+    const dataUrl = `data:image/png;base64,${base64Pdf}`
+
     console.log('Sending PDF to OpenAI for analysis...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -104,12 +108,12 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "Extract the invoice information from this PDF and return it in the specified JSON format."
+                text: "Extract the invoice information from this file and return it in the specified JSON format. Ensure all dates are in YYYY-MM-DD format and all numeric values are numbers, not strings."
               },
               {
                 type: "image_url",
                 image_url: {
-                  url: `data:image/png;base64,${base64Pdf}`
+                  url: dataUrl
                 }
               }
             ]

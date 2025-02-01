@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,41 +10,25 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are an expert invoice parser. Extract and return the key invoice details in a structured JSON format strictly following this schema:
 
 {
-  "InvoiceID": "string",
-  "InvoiceNumber": "string",
-  "InvoiceDate": "YYYY-MM-DD",
-  "DueDate": "YYYY-MM-DD",
-  "SupplierName": "string",
-  "SupplierAddress": "string",
-  "SupplierContact": "string",
-  "SupplierEmail": "string",
-  "CustomerName": "string",
-  "CustomerAddress": "string",
-  "CustomerContact": "string",
-  "CustomerEmail": "string",
-  "PONumber": "string",
-  "PaymentTerms": "string",
-  "Currency": "string",
-  "SubTotal": number,
-  "TaxTotal": number,
-  "TaxPercentage": number,
-  "InvoiceTotal": number,
-  "Notes": "string",
-  "LineItems": [
-    {
-      "Description": "string",
-      "Quantity": number,
-      "UnitPrice": number,
-      "LineTotal": number,
-      "TaxAmount": number
-    }
-  ]
+  "vendor_name": "string",
+  "invoice_number": "string",
+  "invoice_date": "YYYY-MM-DD",
+  "due_date": "YYYY-MM-DD",
+  "total_amount": number,
+  "currency": "string",
+  "payment_terms": "string",
+  "purchase_order_number": "string",
+  "billing_address": "string",
+  "shipping_address": "string",
+  "notes": "string",
+  "tax_amount": number,
+  "subtotal": number
 }
 
 Ensure:
-* Dates are in YYYY-MM-DD format. If the date format is ambiguous (e.g., "01/02/2023"), try to infer the correct format based on the context.
-* Numeric fields (SubTotal, TaxTotal, TaxPercentage, InvoiceTotal, Quantity, UnitPrice, LineTotal, TaxAmount) are numbers (not strings).
-* If a field cannot be extracted, return 'N/A' for that field.
+* Dates are in YYYY-MM-DD format
+* Numeric fields are numbers (not strings)
+* If a field cannot be extracted, return null for that field
 * Respond with JSON only, no extra text.`
 
 serve(async (req) => {
@@ -55,8 +40,6 @@ serve(async (req) => {
     console.log('Starting invoice parsing process...')
     const { fileUrl } = await req.json()
     const openAiApiKey = Deno.env.get('OPENAI_API_KEY')
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
     if (!fileUrl || !openAiApiKey) {
       const error = !fileUrl ? 'No file URL provided' : 'OpenAI API key not configured'
@@ -73,20 +56,37 @@ serve(async (req) => {
       )
     }
 
-    console.log('Creating Supabase client and fetching file content...')
-    const supabase = createClient(supabaseUrl!, supabaseServiceKey!)
+    // Download the PDF file
+    console.log('Downloading PDF from URL:', fileUrl)
+    const pdfResponse = await fetch(fileUrl)
+    if (!pdfResponse.ok) {
+      throw new Error(`Failed to fetch PDF: ${pdfResponse.statusText}`)
+    }
+    const pdfBuffer = await pdfResponse.arrayBuffer()
+
+    // Load the PDF document
+    console.log('Loading PDF document...')
+    const pdfDoc = await PDFDocument.load(pdfBuffer)
+    const pages = pdfDoc.getPages()
     
-    // Download the file content
-    const response = await fetch(fileUrl)
-    if (!response.ok) {
-      throw new Error(`Failed to fetch file: ${response.statusText}`)
+    if (pages.length === 0) {
+      throw new Error('PDF document has no pages')
     }
 
-    // Convert the image to base64
-    const imageBuffer = await response.arrayBuffer()
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)))
+    // Get the first page
+    const firstPage = pages[0]
+    const { width, height } = firstPage.getSize()
 
-    console.log('Sending image to OpenAI for analysis...')
+    // Create a new PDF with just the first page
+    const singlePagePdf = await PDFDocument.create()
+    const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [0])
+    singlePagePdf.addPage(copiedPage)
+
+    // Convert to base64
+    const pdfBytes = await singlePagePdf.save()
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)))
+
+    console.log('Sending PDF to OpenAI for analysis...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -105,12 +105,12 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "Extract the invoice information from this image and return it in the specified JSON format."
+                text: "Extract the invoice information from this PDF and return it in the specified JSON format."
               },
               {
                 type: "image_url",
                 image_url: {
-                  url: `data:image/png;base64,${base64Image}`
+                  url: `data:application/pdf;base64,${base64Pdf}`
                 }
               }
             ]
@@ -141,47 +141,8 @@ serve(async (req) => {
       throw new Error(`Failed to parse OpenAI response as JSON: ${e.message}`)
     }
 
-    // Convert to different formats
-    const textFormat = convertToText(parsedData)
-    const csvFormat = convertToCSV(parsedData)
-    const jsonFormat = JSON.stringify(parsedData, null, 2)
-
-    // Store the parsed data in Supabase
-    const { error: dbError } = await supabase
-      .from('invoices')
-      .insert({
-        user_id: req.headers.get('x-user-id'),
-        vendor_name: parsedData.SupplierName,
-        invoice_number: parsedData.InvoiceNumber,
-        invoice_date: parsedData.InvoiceDate,
-        due_date: parsedData.DueDate,
-        total_amount: parsedData.InvoiceTotal,
-        currency: parsedData.Currency,
-        status: 'pending',
-        original_file_url: fileUrl,
-        payment_terms: parsedData.PaymentTerms,
-        purchase_order_number: parsedData.PONumber,
-        billing_address: parsedData.CustomerAddress,
-        shipping_address: parsedData.SupplierAddress,
-        notes: parsedData.Notes,
-        tax_amount: parsedData.TaxTotal,
-        subtotal: parsedData.SubTotal
-      })
-
-    if (dbError) {
-      console.error('Database error:', dbError)
-      throw new Error(`Failed to save invoice data: ${dbError.message}`)
-    }
-
     return new Response(
-      JSON.stringify({
-        success: true,
-        formats: {
-          text: textFormat,
-          csv: csvFormat,
-          json: jsonFormat
-        }
-      }),
+      JSON.stringify(parsedData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
@@ -199,71 +160,3 @@ serve(async (req) => {
     )
   }
 })
-
-function convertToText(data: any): string {
-  let text = `Invoice Details\n\n`
-  text += `Invoice Number: ${data.InvoiceNumber}\n`
-  text += `Date: ${data.InvoiceDate}\n`
-  text += `Due Date: ${data.DueDate}\n\n`
-  
-  text += `Supplier Information\n`
-  text += `Name: ${data.SupplierName}\n`
-  text += `Address: ${data.SupplierAddress}\n`
-  text += `Contact: ${data.SupplierContact}\n`
-  text += `Email: ${data.SupplierEmail}\n\n`
-  
-  text += `Customer Information\n`
-  text += `Name: ${data.CustomerName}\n`
-  text += `Address: ${data.CustomerAddress}\n`
-  text += `Contact: ${data.CustomerContact}\n`
-  text += `Email: ${data.CustomerEmail}\n\n`
-  
-  text += `Financial Details\n`
-  text += `Currency: ${data.Currency}\n`
-  text += `Subtotal: ${data.SubTotal}\n`
-  text += `Tax (${data.TaxPercentage}%): ${data.TaxTotal}\n`
-  text += `Total Amount: ${data.InvoiceTotal}\n\n`
-  
-  text += `Line Items:\n`
-  data.LineItems.forEach((item: any, index: number) => {
-    text += `${index + 1}. ${item.Description}\n`
-    text += `   Quantity: ${item.Quantity}\n`
-    text += `   Unit Price: ${item.UnitPrice}\n`
-    text += `   Line Total: ${item.LineTotal}\n`
-    text += `   Tax Amount: ${item.TaxAmount}\n\n`
-  })
-  
-  if (data.Notes) {
-    text += `Notes: ${data.Notes}\n`
-  }
-  
-  return text
-}
-
-function convertToCSV(data: any): string {
-  const header = [
-    'Invoice Number',
-    'Invoice Date',
-    'Due Date',
-    'Supplier Name',
-    'Customer Name',
-    'Currency',
-    'Subtotal',
-    'Tax Total',
-    'Invoice Total'
-  ].join(',')
-  
-  const row = [
-    data.InvoiceNumber,
-    data.InvoiceDate,
-    data.DueDate,
-    data.SupplierName,
-    data.CustomerName,
-    data.Currency,
-    data.SubTotal,
-    data.TaxTotal,
-    data.InvoiceTotal
-  ].join(',')
-  
-  return `${header}\n${row}`
-}

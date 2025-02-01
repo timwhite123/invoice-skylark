@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
+import { createCanvas, loadImage } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,19 +53,12 @@ serve(async (req) => {
     const firstPage = pages[0]
     const { width, height } = firstPage.getSize()
 
-    // Create a canvas element
-    const canvas = new OffscreenCanvas(width, height)
+    // Create a canvas with the PDF dimensions
+    const canvas = createCanvas(width, height)
     const ctx = canvas.getContext('2d')
-    
-    if (!ctx) {
-      throw new Error('Failed to get canvas context')
-    }
 
-    // Draw PDF page to canvas
-    const pngImage = await canvas.convertToBlob({ type: 'image/png' })
-    const pngArrayBuffer = await pngImage.arrayBuffer()
-    const base64Data = btoa(String.fromCharCode(...new Uint8Array(pngArrayBuffer)))
-    const pngDataUrl = `data:image/png;base64,${base64Data}`
+    // Convert canvas to PNG data URL
+    const pngDataUrl = canvas.toDataURL('image/png')
 
     console.log('Sending PNG to OpenAI for analysis...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -74,7 +68,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4-vision-preview",
         messages: [
           {
             role: "system",

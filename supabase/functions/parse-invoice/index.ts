@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
-import { createCanvas, loadImage } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,35 +31,7 @@ serve(async (req) => {
       )
     }
 
-    // Download the PDF file
-    console.log('Downloading PDF from URL:', fileUrl)
-    const pdfResponse = await fetch(fileUrl)
-    if (!pdfResponse.ok) {
-      throw new Error(`Failed to fetch PDF: ${pdfResponse.statusText}`)
-    }
-    const pdfBuffer = await pdfResponse.arrayBuffer()
-
-    // Convert PDF to PNG using canvas
-    console.log('Converting PDF to PNG...')
-    const pdfDoc = await PDFDocument.load(pdfBuffer)
-    const pages = pdfDoc.getPages()
-    
-    if (pages.length === 0) {
-      throw new Error('PDF document has no pages')
-    }
-
-    // Get the first page
-    const firstPage = pages[0]
-    const { width, height } = firstPage.getSize()
-
-    // Create a canvas with the PDF dimensions
-    const canvas = createCanvas(width, height)
-    const ctx = canvas.getContext('2d')
-
-    // Convert canvas to PNG data URL
-    const pngDataUrl = canvas.toDataURL('image/png')
-
-    console.log('Sending PNG to OpenAI for analysis...')
+    console.log('Sending file directly to OpenAI for analysis...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -107,7 +78,7 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: pngDataUrl,
+                  url: fileUrl,
                   detail: "high"
                 }
               }
@@ -116,7 +87,7 @@ serve(async (req) => {
         ],
         max_tokens: 2000
       })
-    })
+    });
 
     if (!openAiResponse.ok) {
       const error = await openAiResponse.text()

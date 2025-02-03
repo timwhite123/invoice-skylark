@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +30,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('Sending file directly to OpenAI for analysis...')
+    console.log('Sending file to OpenAI for analysis...')
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -85,9 +84,9 @@ serve(async (req) => {
             ]
           }
         ],
-        max_tokens: 2000
+        max_tokens: 4096
       })
-    });
+    })
 
     if (!openAiResponse.ok) {
       const error = await openAiResponse.text()
@@ -105,6 +104,7 @@ serve(async (req) => {
     let parsedData
     try {
       parsedData = JSON.parse(openAiData.choices[0].message.content)
+      console.log('Successfully parsed invoice data:', parsedData)
     } catch (e) {
       console.error('Error parsing OpenAI response as JSON:', e)
       throw new Error(`Failed to parse OpenAI response as JSON: ${e.message}`)

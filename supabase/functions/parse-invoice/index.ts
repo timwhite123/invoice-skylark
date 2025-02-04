@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { PDFDocument } from "https://cdn.skypack.dev/pdf-lib";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +20,32 @@ serve(async (req) => {
     }
 
     console.log('Processing invoice from URL:', fileUrl);
+
+    // Fetch the PDF file
+    const pdfResponse = await fetch(fileUrl);
+    if (!pdfResponse.ok) {
+      throw new Error('Failed to fetch PDF file');
+    }
+
+    const pdfArrayBuffer = await pdfResponse.arrayBuffer();
+    
+    // Load the PDF document
+    const pdfDoc = await PDFDocument.load(pdfArrayBuffer);
+    const pages = pdfDoc.getPages();
+    
+    if (pages.length === 0) {
+      throw new Error('PDF has no pages');
+    }
+
+    // Get the first page
+    const firstPage = pages[0];
+    const { width, height } = firstPage.getSize();
+
+    // Convert to PNG format
+    const pngBytes = await pdfDoc.saveAsBase64({ format: 'png' });
+    const pngDataUrl = `data:image/png;base64,${pngBytes}`;
+
+    console.log('Successfully converted PDF to PNG');
 
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -58,7 +86,7 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: fileUrl,
+                  url: pngDataUrl,
                   detail: "high"
                 }
               }

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createCanvas, Image } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
-import * as pdfjs from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,24 +29,28 @@ serve(async (req) => {
 
     const pdfBuffer = await pdfResponse.arrayBuffer()
     
+    // Initialize PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.mjs`;
+    
     // Load the PDF using pdf.js
-    const pdf = await pdfjs.getDocument({ data: pdfBuffer }).promise
-    const page = await pdf.getPage(1)
+    const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1);
     
     // Set dimensions
-    const viewport = page.getViewport({ scale: 2.0 })
-    const canvas = createCanvas(viewport.width, viewport.height)
-    const context = canvas.getContext('2d')
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = createCanvas(viewport.width, viewport.height);
+    const context = canvas.getContext('2d');
 
     // Render PDF page to canvas
     await page.render({
       canvasContext: context,
       viewport: viewport
-    }).promise
+    }).promise;
 
     // Convert canvas to base64 image
-    const base64Image = canvas.toDataURL('image/jpeg')
-    console.log('Successfully converted PDF to image')
+    const base64Image = canvas.toDataURL('image/jpeg');
+    console.log('Successfully converted PDF to image');
 
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -55,7 +59,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4-vision-preview",
         messages: [
           {
             role: "user",

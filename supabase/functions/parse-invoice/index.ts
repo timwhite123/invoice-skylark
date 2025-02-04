@@ -1,14 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as pdfjs from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pdf.min.mjs";
-import { GlobalWorkerOptions } from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pdf.min.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Configure PDF.js worker
-GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pdf.worker.min.js";
+// Custom worker implementation for PDF.js in Deno
+const pdfjsWorker = {
+  async function(data: any) {
+    // Basic worker functionality needed for text extraction
+    return { data: {} };
+  }
+};
+
+// Configure PDF.js to use custom worker
+(pdfjs as any).GlobalWorkerOptions = {
+  workerPort: pdfjsWorker
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -31,11 +40,13 @@ serve(async (req) => {
     }
     const pdfData = await response.arrayBuffer();
 
-    // Load the PDF document
+    // Load the PDF document with custom worker
+    console.log('Loading PDF document...');
     const loadingTask = pdfjs.getDocument({ data: pdfData });
     const pdf = await loadingTask.promise;
     
     // Extract text from all pages
+    console.log('Extracting text from PDF...');
     let fullText = '';
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);

@@ -1,10 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as pdfjs from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pdf.min.mjs";
+import { GlobalWorkerOptions } from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pdf.min.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Configure PDF.js worker
+GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pdf.worker.min.js";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -39,6 +43,8 @@ serve(async (req) => {
       const pageText = textContent.items.map((item: any) => item.str).join(' ');
       fullText += pageText + '\n';
     }
+
+    console.log('Extracted text from PDF:', fullText.substring(0, 200) + '...');
 
     // Send to OpenAI for analysis
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {

@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createCanvas, Image } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,25 +19,6 @@ serve(async (req) => {
 
     console.log('Processing invoice from URL:', fileUrl);
 
-    // Fetch the PDF file
-    const pdfResponse = await fetch(fileUrl);
-    if (!pdfResponse.ok) {
-      throw new Error('Failed to fetch PDF file');
-    }
-
-    // Convert PDF to base64
-    const pdfBuffer = await pdfResponse.arrayBuffer();
-    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
-
-    // Create a canvas and convert to base64 image
-    const canvas = createCanvas(800, 1000);
-    const ctx = canvas.getContext('2d');
-    
-    // Convert to base64 image
-    const base64Image = canvas.toDataURL('image/jpeg');
-
-    console.log('Successfully converted PDF to image');
-
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -46,7 +26,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "user",
@@ -78,7 +58,8 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: base64Image
+                  url: fileUrl,
+                  detail: "high"
                 }
               }
             ]

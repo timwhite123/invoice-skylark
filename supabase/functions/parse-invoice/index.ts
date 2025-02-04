@@ -11,7 +11,9 @@ const corsHeaders = {
 const pdfjsWorker = {
   async postMessage(data: any) {
     return { data: {} };
-  }
+  },
+  addEventListener() {},
+  removeEventListener() {},
 };
 
 serve(async (req) => {

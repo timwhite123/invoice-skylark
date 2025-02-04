@@ -29,11 +29,12 @@ serve(async (req) => {
 
     const pdfBuffer = await pdfResponse.arrayBuffer()
     
-    // Initialize PDF.js
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.mjs`;
+    // Initialize PDF.js with the worker
+    const pdfjsWorker = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.mjs");
+    pdfjsLib.GlobalWorkerOptions.workerPort = new pdfjsWorker.PDFWorker();
     
     // Load the PDF using pdf.js
-    const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+    const loadingTask = new pdfjsLib.getDocument({ data: pdfBuffer });
     const pdf = await loadingTask.promise;
     const page = await pdf.getPage(1);
     

@@ -1,11 +1,9 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as pdfjs from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pdf.min.mjs";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import * as pdfjs from 'npm:pdfjs-dist@4.0.189';
+import { parseInvoiceTemplate } from './template.ts';
+import { corsHeaders } from './utils.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -17,9 +15,8 @@ serve(async (req) => {
   }
 
   try {
-    // Validate request method
-    if (req.method !== 'POST') {
-      throw new Error(`Method ${req.method} not allowed`);
+    if (!OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not configured');
     }
 
     const { fileUrl } = await req.json();
@@ -29,39 +26,51 @@ serve(async (req) => {
       throw new Error('No file URL provided');
     }
 
+    // Validate URL format
+    try {
+      new URL(fileUrl);
+    } catch (e) {
+      throw new Error('Invalid file URL format');
+    }
+
     // Configure PDF.js worker
     const pdfjsWorker = {
-      async postMessage(data: any) {
-        return { data: {} };
-      },
-      addEventListener() {},
-      removeEventListener() {},
+      async port(data: any) {
+        return {
+          data
+        };
+      }
     };
 
     (pdfjs as any).GlobalWorkerOptions.workerSrc = '';
     (pdfjs as any).GlobalWorkerOptions.workerPort = pdfjsWorker;
 
-    // Fetch the PDF file
+    // Fetch the PDF file with proper error handling
     console.log('Fetching PDF file...');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
 
     try {
       const response = await fetch(fileUrl, {
+        signal: controller.signal,
         headers: {
           'Accept': 'application/pdf'
-        },
-        signal: controller.signal
+        }
       });
 
-      clearTimeout(timeout);
-
       if (!response.ok) {
-        console.error('Failed to fetch PDF:', response.status, response.statusText);
-        throw new Error(`Failed to fetch PDF file: ${response.statusText}`);
+        throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/pdf')) {
+        throw new Error('Invalid content type: Expected PDF');
       }
 
       const pdfData = await response.arrayBuffer();
+      if (!pdfData || pdfData.byteLength === 0) {
+        throw new Error('Retrieved PDF data is empty');
+      }
       
       // Load and process the PDF
       console.log('Loading PDF document...');
@@ -69,10 +78,9 @@ serve(async (req) => {
         data: pdfData,
         useWorkerFetch: false,
         isEvalSupported: false,
-        useSystemFonts: true,
-        standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/standard_fonts/'
+        useSystemFonts: true
       });
-      
+
       const pdf = await loadingTask.promise;
       console.log('PDF loaded successfully, pages:', pdf.numPages);
       
@@ -80,8 +88,8 @@ serve(async (req) => {
       let fullText = '';
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        const content = await page.getTextContent();
+        const pageText = content.items.map((item: any) => item.str).join(' ');
         fullText += pageText + '\n';
       }
 
@@ -90,8 +98,8 @@ serve(async (req) => {
       const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: "gpt-4",
@@ -119,14 +127,14 @@ serve(async (req) => {
               role: "user",
               content: fullText
             }
-          ]
+          ],
+          temperature: 0.3
         })
       });
 
       if (!openAiResponse.ok) {
-        const error = await openAiResponse.text();
-        console.error('OpenAI API error:', error);
-        throw new Error(`OpenAI API error: ${error}`);
+        const errorText = await openAiResponse.text();
+        throw new Error(`OpenAI API error: ${openAiResponse.status} - ${errorText}`);
       }
 
       const openAiData = await openAiResponse.json();
@@ -156,12 +164,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing invoice:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Failed to process invoice',
-        details: error.message
+      JSON.stringify({
+        error: error.message || 'An error occurred while processing the invoice'
       }),
       { 
-        status: 500,
+        status: 400,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'

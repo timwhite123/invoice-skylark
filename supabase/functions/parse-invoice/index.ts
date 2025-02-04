@@ -27,28 +27,12 @@ serve(async (req) => {
     }
 
     const pdfBuffer = await pdfResponse.arrayBuffer()
-    const pdfDoc = await PDFDocument.load(pdfBuffer)
-    const pages = pdfDoc.getPages()
     
-    if (pages.length === 0) {
-      throw new Error('PDF has no pages')
-    }
+    // Convert PDF to base64
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
+    const dataUrl = `data:application/pdf;base64,${base64Pdf}`
 
-    // Get the first page
-    const firstPage = pages[0]
-    const { width, height } = firstPage.getSize()
-
-    // Convert to PNG using pdf-lib's rendering capabilities
-    const pngBytes = await firstPage.png({
-      width: Math.min(2048, width), // Max width of 2048px
-      height: Math.min(2048, height * (2048 / width)), // Maintain aspect ratio
-    })
-
-    // Convert PNG bytes to base64
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(pngBytes)))
-    const dataUrl = `data:image/png;base64,${base64Image}`
-
-    console.log('Successfully converted PDF to PNG')
+    console.log('Successfully converted PDF to base64')
 
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

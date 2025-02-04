@@ -20,8 +20,41 @@ serve(async (req) => {
 
     console.log('Processing invoice from URL:', fileUrl);
 
-    // Instead of converting the PDF, we'll use the parse-invoice template directly
-    // with the PDF URL since gpt-4o-mini can handle PDFs directly
+    // Use PDF.co API to convert PDF to PNG
+    const pdfcoApiKey = Deno.env.get('PDFCO_API_KEY');
+    if (!pdfcoApiKey) {
+      throw new Error('PDF.co API key not configured');
+    }
+
+    // First, convert PDF to PNG using PDF.co
+    console.log('Converting PDF to PNG using PDF.co...');
+    const pdfcoResponse = await fetch(`https://api.pdf.co/v1/pdf/convert/to/png`, {
+      method: 'POST',
+      headers: {
+        'x-api-key': pdfcoApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: fileUrl,
+        pages: "1",
+        async: false
+      })
+    });
+
+    if (!pdfcoResponse.ok) {
+      const error = await pdfcoResponse.text();
+      console.error('PDF.co API error:', error);
+      throw new Error(`PDF.co API error: ${error}`);
+    }
+
+    const pdfcoData = await pdfcoResponse.json();
+    if (!pdfcoData.url) {
+      throw new Error('PDF.co conversion failed to return image URL');
+    }
+
+    console.log('Successfully converted PDF to PNG, sending to OpenAI...');
+
+    // Now send the PNG to OpenAI
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -61,7 +94,7 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: fileUrl
+                  url: pdfcoData.url
                 }
               }
             ]

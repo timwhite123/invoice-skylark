@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +8,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
@@ -18,6 +19,36 @@ serve(async (req) => {
     }
 
     console.log('Processing invoice from URL:', fileUrl)
+
+    // Fetch the PDF file
+    const pdfResponse = await fetch(fileUrl)
+    if (!pdfResponse.ok) {
+      throw new Error('Failed to fetch PDF file')
+    }
+
+    const pdfBuffer = await pdfResponse.arrayBuffer()
+    const pdfDoc = await PDFDocument.load(pdfBuffer)
+    const pages = pdfDoc.getPages()
+    
+    if (pages.length === 0) {
+      throw new Error('PDF has no pages')
+    }
+
+    // Get the first page
+    const firstPage = pages[0]
+    const { width, height } = firstPage.getSize()
+
+    // Convert to PNG using pdf-lib's rendering capabilities
+    const pngBytes = await firstPage.png({
+      width: Math.min(2048, width), // Max width of 2048px
+      height: Math.min(2048, height * (2048 / width)), // Maintain aspect ratio
+    })
+
+    // Convert PNG bytes to base64
+    const base64Image = btoa(String.fromCharCode(...new Uint8Array(pngBytes)))
+    const dataUrl = `data:image/png;base64,${base64Image}`
+
+    console.log('Successfully converted PDF to PNG')
 
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -58,7 +89,7 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: fileUrl
+                  url: dataUrl
                 }
               }
             ]

@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import * as pdfjs from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pdf.min.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,7 +20,27 @@ serve(async (req) => {
 
     console.log('Processing invoice from URL:', fileUrl);
 
-    // Send to OpenAI using a text-based approach instead of vision
+    // Fetch the PDF file
+    const response = await fetch(fileUrl);
+    if (!response.ok) {
+      throw new Error('Failed to fetch PDF file');
+    }
+    const pdfData = await response.arrayBuffer();
+
+    // Load the PDF document
+    const loadingTask = pdfjs.getDocument({ data: pdfData });
+    const pdf = await loadingTask.promise;
+    
+    // Extract text from all pages
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+
+    // Send to OpenAI for analysis
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -28,12 +48,11 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4",
         messages: [
           {
             role: "system",
-            content: `You are an expert invoice parser. You will receive a URL to a PDF invoice. 
-            Extract and return invoice details in this exact JSON format:
+            content: `You are an expert invoice parser. Extract invoice details from the following text and return them in this exact JSON format:
             {
               "vendor_name": "string",
               "invoice_number": "string",
@@ -59,7 +78,7 @@ serve(async (req) => {
           },
           {
             role: "user",
-            content: `Please analyze the invoice at this URL and extract the information: ${fileUrl}`
+            content: fullText
           }
         ],
         temperature: 0

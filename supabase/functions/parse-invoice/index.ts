@@ -7,6 +7,13 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Create a minimal worker implementation
+const pdfjsWorker = {
+  async postMessage(data: any) {
+    return { data: {} };
+  }
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -25,8 +32,9 @@ serve(async (req) => {
 
     console.log('Processing invoice from URL:', fileUrl);
 
-    // Configure PDF.js for server environment
-    (pdfjs as any).GlobalWorkerOptions.workerSrc = false;
+    // Configure PDF.js worker
+    (pdfjs as any).GlobalWorkerOptions.workerSrc = '';
+    (pdfjs as any).GlobalWorkerOptions.workerPort = pdfjsWorker;
 
     // Fetch the PDF file with error handling
     const response = await fetch(fileUrl, {

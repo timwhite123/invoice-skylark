@@ -7,15 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Create a minimal worker implementation
-const pdfjsWorker = {
-  async postMessage(data: any) {
-    return { data: {} };
-  },
-  addEventListener() {},
-  removeEventListener() {},
-};
-
 serve(async (req) => {
   console.log('Received request:', req.method, 'from origin:', req.headers.get('origin'));
   
@@ -24,10 +15,7 @@ serve(async (req) => {
     console.log('Handling OPTIONS request');
     return new Response(null, { 
       status: 204,
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Max-Age': '86400',
-      }
+      headers: corsHeaders
     });
   }
 
@@ -46,6 +34,14 @@ serve(async (req) => {
     console.log('Processing invoice from URL:', fileUrl);
 
     // Configure PDF.js worker
+    const pdfjsWorker = {
+      async postMessage(data: any) {
+        return { data: {} };
+      },
+      addEventListener() {},
+      removeEventListener() {},
+    };
+
     (pdfjs as any).GlobalWorkerOptions.workerSrc = '';
     (pdfjs as any).GlobalWorkerOptions.workerPort = pdfjsWorker;
 

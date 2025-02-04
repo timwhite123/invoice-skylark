@@ -17,8 +17,11 @@ const pdfjsWorker = {
 };
 
 serve(async (req) => {
+  console.log('Received request:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
     return new Response(null, { 
       status: 204,
       headers: corsHeaders 
@@ -39,6 +42,7 @@ serve(async (req) => {
     (pdfjs as any).GlobalWorkerOptions.workerPort = pdfjsWorker;
 
     // Fetch the PDF file with error handling
+    console.log('Fetching PDF file...');
     const response = await fetch(fileUrl, {
       headers: {
         'Accept': 'application/pdf'
@@ -46,6 +50,7 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      console.error('Failed to fetch PDF:', response.status, response.statusText);
       throw new Error(`Failed to fetch PDF file: ${response.statusText}`);
     }
 
@@ -80,6 +85,7 @@ serve(async (req) => {
     console.log('Extracted text length:', fullText.length);
 
     // Send to OpenAI for analysis
+    console.log('Sending to OpenAI for analysis...');
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

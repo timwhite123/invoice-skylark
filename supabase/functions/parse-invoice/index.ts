@@ -20,7 +20,7 @@ serve(async (req) => {
 
     console.log('Processing invoice from URL:', fileUrl);
 
-    // Send directly to OpenAI
+    // Send to OpenAI using a text-based approach instead of vision
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -31,42 +31,37 @@ serve(async (req) => {
         model: "gpt-4o-mini",
         messages: [
           {
+            role: "system",
+            content: `You are an expert invoice parser. You will receive a URL to a PDF invoice. 
+            Extract and return invoice details in this exact JSON format:
+            {
+              "vendor_name": "string",
+              "invoice_number": "string",
+              "invoice_date": "YYYY-MM-DD",
+              "due_date": "YYYY-MM-DD",
+              "total_amount": number,
+              "currency": "string",
+              "payment_terms": "string",
+              "purchase_order_number": "string",
+              "billing_address": "string",
+              "shipping_address": "string",
+              "notes": "string",
+              "tax_amount": number,
+              "subtotal": number
+            }
+            
+            Important rules:
+            - Format all dates as YYYY-MM-DD strings
+            - Format all monetary values as numbers without currency symbols
+            - Use null for missing values
+            - Be precise and accurate in your extraction
+            - Only return the JSON object, nothing else`
+          },
+          {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Please analyze this invoice and extract the following information in JSON format:
-                - vendor_name
-                - invoice_number
-                - invoice_date
-                - due_date
-                - total_amount
-                - currency
-                - payment_terms
-                - purchase_order_number
-                - billing_address
-                - shipping_address
-                - notes
-                - payment_method
-                - discount_amount
-                - additional_fees
-                - tax_amount
-                - subtotal
-
-                Please return ONLY the JSON object with these fields, nothing else. Use null for missing values.
-                Format dates as YYYY-MM-DD strings.
-                Format all monetary values as numbers without currency symbols.`
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: fileUrl
-                }
-              }
-            ]
+            content: `Please analyze the invoice at this URL and extract the information: ${fileUrl}`
           }
         ],
-        max_tokens: 4096,
         temperature: 0
       })
     });

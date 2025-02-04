@@ -26,7 +26,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4-vision-preview",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "user",
@@ -56,8 +56,10 @@ serve(async (req) => {
                 Format all monetary values as numbers without currency symbols.`
               },
               {
-                type: "image",
-                image_url: fileUrl
+                type: "image_url",
+                image_url: {
+                  url: fileUrl
+                }
               }
             ]
           }

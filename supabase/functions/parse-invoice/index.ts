@@ -7,18 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Custom worker implementation for PDF.js in Deno
-const pdfjsWorker = {
-  async function(data: any) {
-    return { data: {} };
-  }
-};
-
-// Configure PDF.js to use custom worker
-(pdfjs as any).GlobalWorkerOptions = {
-  workerPort: pdfjsWorker
-};
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -37,6 +25,9 @@ serve(async (req) => {
 
     console.log('Processing invoice from URL:', fileUrl);
 
+    // Configure PDF.js for server environment
+    (pdfjs as any).GlobalWorkerOptions.workerSrc = false;
+
     // Fetch the PDF file with error handling
     const response = await fetch(fileUrl, {
       headers: {
@@ -53,13 +44,14 @@ serve(async (req) => {
       throw new Error('Retrieved PDF data is empty');
     }
 
-    // Load the PDF document with custom worker
+    // Load the PDF document
     console.log('Loading PDF document...');
-    const loadingTask = pdfjs.getDocument({ 
+    const loadingTask = pdfjs.getDocument({
       data: pdfData,
       useWorkerFetch: false,
       isEvalSupported: false,
-      useSystemFonts: true
+      useSystemFonts: true,
+      standardFontDataUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/standard_fonts/'
     });
     
     const pdf = await loadingTask.promise;

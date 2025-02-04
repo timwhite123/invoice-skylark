@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,39 +18,6 @@ serve(async (req) => {
     }
 
     console.log('Processing invoice from URL:', fileUrl)
-
-    // Convert PDF to PNG using PDF.co Web API
-    const pdfcoApiKey = Deno.env.get('PDFCO_API_KEY')
-    if (!pdfcoApiKey) {
-      throw new Error('PDF.co API key not configured')
-    }
-
-    const pdfToImageUrl = `https://api.pdf.co/v1/pdf/convert/to/png`
-    const pdfcoResponse = await fetch(pdfToImageUrl, {
-      method: 'POST',
-      headers: {
-        'x-api-key': pdfcoApiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: fileUrl,
-        pages: "1",
-        async: false
-      })
-    })
-
-    if (!pdfcoResponse.ok) {
-      const error = await pdfcoResponse.text()
-      console.error('PDF.co API error:', error)
-      throw new Error(`PDF.co API error: ${error}`)
-    }
-
-    const pdfcoData = await pdfcoResponse.json()
-    if (!pdfcoData.url) {
-      throw new Error('Failed to convert PDF to image')
-    }
-
-    console.log('Successfully converted PDF to image:', pdfcoData.url)
 
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -92,7 +58,7 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: pdfcoData.url
+                  url: fileUrl
                 }
               }
             ]

@@ -8,11 +8,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('Received request:', req.method, 'from origin:', req.headers.get('origin'));
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request');
     return new Response(null, { 
       status: 204,
       headers: corsHeaders
@@ -26,12 +23,11 @@ serve(async (req) => {
     }
 
     const { fileUrl } = await req.json();
+    console.log('Processing request with fileUrl:', fileUrl);
     
     if (!fileUrl) {
       throw new Error('No file URL provided');
     }
-
-    console.log('Processing invoice from URL:', fileUrl);
 
     // Configure PDF.js worker
     const pdfjsWorker = {
@@ -45,10 +41,10 @@ serve(async (req) => {
     (pdfjs as any).GlobalWorkerOptions.workerSrc = '';
     (pdfjs as any).GlobalWorkerOptions.workerPort = pdfjsWorker;
 
-    // Fetch the PDF file with error handling and timeout
+    // Fetch the PDF file
     console.log('Fetching PDF file...');
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeout = setTimeout(() => controller.abort(), 30000);
 
     try {
       const response = await fetch(fileUrl, {
@@ -66,11 +62,8 @@ serve(async (req) => {
       }
 
       const pdfData = await response.arrayBuffer();
-      if (!pdfData || pdfData.byteLength === 0) {
-        throw new Error('Retrieved PDF data is empty');
-      }
-
-      // Load the PDF document
+      
+      // Load and process the PDF
       console.log('Loading PDF document...');
       const loadingTask = pdfjs.getDocument({
         data: pdfData,
@@ -84,7 +77,6 @@ serve(async (req) => {
       console.log('PDF loaded successfully, pages:', pdf.numPages);
       
       // Extract text from all pages
-      console.log('Extracting text from PDF...');
       let fullText = '';
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
@@ -93,10 +85,8 @@ serve(async (req) => {
         fullText += pageText + '\n';
       }
 
-      console.log('Extracted text length:', fullText.length);
-
-      // Send to OpenAI for analysis
-      console.log('Sending to OpenAI for analysis...');
+      // Process with OpenAI
+      console.log('Sending to OpenAI...');
       const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -108,7 +98,7 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are an expert invoice parser. Extract invoice details from the following text and return them in this exact JSON format:
+              content: `Extract invoice details from the following text and return them in this exact JSON format:
               {
                 "vendor_name": "string",
                 "invoice_number": "string",
@@ -123,21 +113,13 @@ serve(async (req) => {
                 "notes": "string",
                 "tax_amount": number,
                 "subtotal": number
-              }
-              
-              Important rules:
-              - Format all dates as YYYY-MM-DD strings
-              - Format all monetary values as numbers without currency symbols
-              - Use null for missing values
-              - Be precise and accurate in your extraction
-              - Only return the JSON object, nothing else`
+              }`
             },
             {
               role: "user",
               content: fullText
             }
-          ],
-          temperature: 0
+          ]
         })
       });
 
@@ -148,19 +130,14 @@ serve(async (req) => {
       }
 
       const openAiData = await openAiResponse.json();
+      console.log('OpenAI response received');
       
       if (!openAiData.choices?.[0]?.message?.content) {
         throw new Error('Invalid response from OpenAI');
       }
 
-      let parsedData;
-      try {
-        parsedData = JSON.parse(openAiData.choices[0].message.content);
-        console.log('Successfully parsed invoice data');
-      } catch (e) {
-        console.error('Error parsing OpenAI response as JSON:', e);
-        throw new Error(`Failed to parse OpenAI response as JSON: ${e.message}`);
-      }
+      const parsedData = JSON.parse(openAiData.choices[0].message.content);
+      console.log('Successfully parsed invoice data');
 
       return new Response(
         JSON.stringify(parsedData),
@@ -171,9 +148,11 @@ serve(async (req) => {
           } 
         }
       );
+
     } finally {
       clearTimeout(timeout);
     }
+
   } catch (error) {
     console.error('Error processing invoice:', error);
     return new Response(

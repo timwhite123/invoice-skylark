@@ -4,12 +4,12 @@ import * as pdfjs from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.189/build/pd
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 // Custom worker implementation for PDF.js in Deno
 const pdfjsWorker = {
   async function(data: any) {
-    // Basic worker functionality needed for text extraction
     return { data: {} };
   }
 };
@@ -20,8 +20,12 @@ const pdfjsWorker = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -33,17 +37,33 @@ serve(async (req) => {
 
     console.log('Processing invoice from URL:', fileUrl);
 
-    // Fetch the PDF file
-    const response = await fetch(fileUrl);
+    // Fetch the PDF file with error handling
+    const response = await fetch(fileUrl, {
+      headers: {
+        'Accept': 'application/pdf'
+      }
+    });
+
     if (!response.ok) {
-      throw new Error('Failed to fetch PDF file');
+      throw new Error(`Failed to fetch PDF file: ${response.statusText}`);
     }
+
     const pdfData = await response.arrayBuffer();
+    if (!pdfData || pdfData.byteLength === 0) {
+      throw new Error('Retrieved PDF data is empty');
+    }
 
     // Load the PDF document with custom worker
     console.log('Loading PDF document...');
-    const loadingTask = pdfjs.getDocument({ data: pdfData });
+    const loadingTask = pdfjs.getDocument({ 
+      data: pdfData,
+      useWorkerFetch: false,
+      isEvalSupported: false,
+      useSystemFonts: true
+    });
+    
     const pdf = await loadingTask.promise;
+    console.log('PDF loaded successfully, pages:', pdf.numPages);
     
     // Extract text from all pages
     console.log('Extracting text from PDF...');
@@ -55,7 +75,7 @@ serve(async (req) => {
       fullText += pageText + '\n';
     }
 
-    console.log('Extracted text from PDF:', fullText.substring(0, 200) + '...');
+    console.log('Extracted text length:', fullText.length);
 
     // Send to OpenAI for analysis
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {

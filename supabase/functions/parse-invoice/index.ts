@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
+import { createCanvas, Image } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
+import * as pdfjs from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,11 +29,24 @@ serve(async (req) => {
 
     const pdfBuffer = await pdfResponse.arrayBuffer()
     
-    // Convert PDF to base64
-    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
-    const dataUrl = `data:application/pdf;base64,${base64Pdf}`
+    // Load the PDF using pdf.js
+    const pdf = await pdfjs.getDocument({ data: pdfBuffer }).promise
+    const page = await pdf.getPage(1)
+    
+    // Set dimensions
+    const viewport = page.getViewport({ scale: 2.0 })
+    const canvas = createCanvas(viewport.width, viewport.height)
+    const context = canvas.getContext('2d')
 
-    console.log('Successfully converted PDF to base64')
+    // Render PDF page to canvas
+    await page.render({
+      canvasContext: context,
+      viewport: viewport
+    }).promise
+
+    // Convert canvas to base64 image
+    const base64Image = canvas.toDataURL('image/jpeg')
+    console.log('Successfully converted PDF to image')
 
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -73,7 +87,7 @@ serve(async (req) => {
               {
                 type: "image_url",
                 image_url: {
-                  url: dataUrl
+                  url: base64Image
                 }
               }
             ]

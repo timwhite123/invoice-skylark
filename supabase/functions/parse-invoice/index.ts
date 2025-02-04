@@ -1,13 +1,15 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import * as pdfjs from 'npm:pdfjs-dist@4.0.189';
-import { parseInvoiceTemplate } from './template.ts';
 import { corsHeaders } from './utils.ts';
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
+  console.log('Received request to parse-invoice function');
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { 
       status: 204,
       headers: corsHeaders
@@ -26,13 +28,6 @@ serve(async (req) => {
       throw new Error('No file URL provided');
     }
 
-    // Validate URL format
-    try {
-      new URL(fileUrl);
-    } catch (e) {
-      throw new Error('Invalid file URL format');
-    }
-
     // Configure PDF.js worker
     const pdfjsWorker = {
       async port(data: any) {
@@ -45,7 +40,7 @@ serve(async (req) => {
     (pdfjs as any).GlobalWorkerOptions.workerSrc = '';
     (pdfjs as any).GlobalWorkerOptions.workerPort = pdfjsWorker;
 
-    // Fetch the PDF file with proper error handling
+    // Fetch the PDF file with proper error handling and timeout
     console.log('Fetching PDF file...');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
@@ -54,7 +49,9 @@ serve(async (req) => {
       const response = await fetch(fileUrl, {
         signal: controller.signal,
         headers: {
-          'Accept': 'application/pdf'
+          'Accept': 'application/pdf',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
 

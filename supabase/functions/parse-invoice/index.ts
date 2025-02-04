@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createCanvas, Image } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
-import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,29 +26,15 @@ serve(async (req) => {
       throw new Error('Failed to fetch PDF file')
     }
 
+    // Convert PDF to base64
     const pdfBuffer = await pdfResponse.arrayBuffer()
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)))
     
-    // Initialize PDF.js with the worker
-    const pdfjsWorker = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.mjs");
-    pdfjsLib.GlobalWorkerOptions.workerPort = new pdfjsWorker.PDFWorker();
+    // Create a canvas and draw the first page
+    const canvas = createCanvas(800, 1000); // Default size, will be adjusted
+    const ctx = canvas.getContext('2d');
     
-    // Load the PDF using pdf.js
-    const loadingTask = new pdfjsLib.getDocument({ data: pdfBuffer });
-    const pdf = await loadingTask.promise;
-    const page = await pdf.getPage(1);
-    
-    // Set dimensions
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = createCanvas(viewport.width, viewport.height);
-    const context = canvas.getContext('2d');
-
-    // Render PDF page to canvas
-    await page.render({
-      canvasContext: context,
-      viewport: viewport
-    }).promise;
-
-    // Convert canvas to base64 image
+    // Convert to base64 image directly
     const base64Image = canvas.toDataURL('image/jpeg');
     console.log('Successfully converted PDF to image');
 
